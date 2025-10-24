@@ -279,19 +279,18 @@
       document.getElementById('possible').textContent = possible;
       document.getElementById('percent').textContent = possible ? Math.round(earned / possible * 100) : 0;
 
-      // Log score to backend
-      const logData = {
+      // Log score to backend (simple POST - no preflight)
+      const logData = new URLSearchParams({
         action: 'logScore',
         name: userName,
         score: possible ? Math.round(earned / possible * 100) : 0,
         questions: quizQuestions.length
-      };
-      console.log('Sending score log:', logData);  // Debug
+      });
+      console.log('Sending score log:', logData.toString());  // Debug
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(logData)
+          body: logData  // No Content-Type - triggers simple request
         });
         if (response.ok) {
           console.log('Score logged successfully!');
@@ -308,8 +307,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
