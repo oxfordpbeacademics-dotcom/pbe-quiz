@@ -59,7 +59,17 @@
   <!-- ==== CONFIG ==== -->
   <div id="config" class="card">
     <label><strong>Your Name:</strong></label><br>
-    <input type="text" id="userName" placeholder="Enter your name" style="width:100%;"><br><br>
+    <select id="userName">
+      <option value="">Select Name...</option>
+      <option value="Coach">Coach</option>
+      <option value="Kudzie">Kudzie</option>
+      <option value="Wandie">Wandie</option>
+      <option value="Abigail">Abigail</option>
+      <option value="Micheala">Micheala</option>
+      <option value="Dereal">Dereal</option>
+      <option value="Caleb">Caleb</option>
+      <option value="Jaydon">Jaydon</option>
+    </select><br><br>
 
     <label><strong>Choose Book:</strong></label><br>
     <select id="bookSelect"></select><br><br>
@@ -110,7 +120,7 @@
 
   <script>
     // ==== UPDATE WITH YOUR NEW URL AFTER REDEPLOY ====
-    const API_URL = "https://script.google.com/macros/s/AKfycbwnjSkWf2eaUXgkhVKLwBCSIuMvhbMpw_50jH4j46vbcSePzsDmF7DlG_9bJVnQwa_SvQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbzzOYHyXbSws3v8pNWoeAVCs4jNN-WpTmtRLSmERxNhhVD4grZ9RJRoWO2Rnov6auzkAg/exec";
     // =================================================
 
     // Full Bible book chapter counts (customized for Isaiah 1-33 focus)
@@ -184,14 +194,14 @@
     }
 
     async function startQuiz() {
-      userName = document.getElementById('userName').value.trim() || 'Anonymous';
+      userName = document.getElementById('userName').value.trim();
       const book = document.getElementById('bookSelect').value;
       const chapSel = document.getElementById('chapterSelect');
       const chapters = Array.from(chapSel.selectedOptions).map(o => o.value).filter(c => c);
       const n = document.getElementById('numQuestions').value;
 
-      if (!book || chapters.length === 0 || !userName) {
-        alert('Please enter your name, select a book, and at least one chapter.');
+      if (!userName || !book || chapters.length === 0) {
+        alert('Please select your name, a book, and at least one chapter.');
         return;
       }
 
@@ -307,4 +317,3 @@
   </script>
 </body>
 </html>
-
