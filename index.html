@@ -47,9 +47,30 @@
       font-weight: bold;
       text-align: center;
     }
+    /* Center all buttons */
+    .card button, .summary button {
+      display: block;
+      margin: 0.5rem auto;
+      width: 100%;
+      max-width: 200px;
+    }
+    .options button {
+      flex: 1;
+      max-width: none;
+    }
     @media (max-width: 480px) {
       .card { padding: 1rem; }
       .options { flex-direction: column; }
+    }
+    /* Footer credit */
+    .footer-credit {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      font-size: 0.8rem;
+      color: #666;
+      text-align: right;
+      z-index: 1000;
     }
   </style>
 </head>
@@ -120,6 +141,9 @@
     <p><strong>Percentage:</strong> <span id="percent"></span>%</p>
     <button onclick="location.reload()">Test Again</button>
   </div>
+
+  <!-- Footer Credit -->
+  <div class="footer-credit">Developed by P. Mudzamba</div>
 
   <script>
     // ==== UPDATE WITH YOUR NEW URL AFTER REDEPLOY ====
