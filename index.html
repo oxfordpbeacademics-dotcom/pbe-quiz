@@ -305,47 +305,44 @@
       }
     }
 
-    async function showSummary() {
-      console.log('showSummary called! Hiding quiz, showing summary.');  // Debug
-      document.getElementById('quiz').classList.add('hidden');
-      const sum = document.getElementById('summary');
-      sum.classList.remove('hidden');
-      document.getElementById('nameDisplay').textContent = userName;
-      document.getElementById('totalQ').textContent = quizQuestions.length;
-      document.getElementById('earned').textContent = earned;
-      document.getElementById('possible').textContent = possible;
-      document.getElementById('percent').textContent = possible ? Math.round(earned / possible * 100) : 0;
+async function showSummary() {
+  console.log('showSummary called! Hiding quiz, showing summary.');  // Debug
+  document.getElementById('quiz').classList.add('hidden');
+  const sum = document.getElementById('summary');
+  sum.classList.remove('hidden');
+  document.getElementById('nameDisplay').textContent = userName;
+  document.getElementById('totalQ').textContent = quizQuestions.length;
+  document.getElementById('earned').textContent = earned;
+  document.getElementById('possible').textContent = possible;
+  document.getElementById('percent').textContent = possible ? Math.round(earned / possible * 100) : 0;
 
-      // Log score to backend (JSON POST - backend expects this)
-      const logData = {
-        action: 'logScore',
-        name: userName,
-        score: possible ? Math.round(earned / possible * 100) : 0,
-        questions: quizQuestions.length
-      };
-      console.log('Sending score log:', logData);  // Debug
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(logData)
-        });
-        const result = await response.json();
-        if (response.ok && result.success) {
-          console.log('Score logged successfully!');
-        } else {
-          console.error('POST failed:', response.status, result);
-        }
-      } catch (err) {
-        console.error('Score log failed:', err);
-      }
+  // Calculate numbers for logging
+  const scorePercent = possible ? Math.round(earned / possible * 100) : 0;
+
+  // ✅ Send via GET instead of POST to avoid CORS
+  const url = `${API_URL}?action=logScore&name=${encodeURIComponent(userName)}&score=${scorePercent}&questions=${quizQuestions.length}`;
+
+  console.log('Logging score using GET:', url); // Debug
+
+  try {
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      console.log('Score logged successfully!');
+    } else {
+      console.error('Log failed:', result);
     }
+  } catch (err) {
+    console.error('Score log failed:', err);
+  }
+}
 
     // Start
     loadConfig();
   </script>
 </body>
 </html>
+
 
 
 
