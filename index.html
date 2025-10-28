@@ -43,7 +43,7 @@
       font-size: 1.6rem; 
       color: var(--primary); 
       margin-bottom: 1rem; 
-      display: block !important;  /* Force show */
+      display: block !important;  
       font-weight: bold;
       text-align: center;
     }
@@ -58,9 +58,13 @@
       flex: 1;
       max-width: none;
     }
+    .rating-options { display: flex; gap: 0.5rem; justify-content: center; margin: 0.5rem 0; }
+    .rating-btn { background: #2196F3; font-size: 0.9rem; padding: 0.4rem; min-width: 60px; }
+    .rating-btn:hover { background: #1976D2; }
     @media (max-width: 480px) {
       .card { padding: 1rem; }
       .options { flex-direction: column; }
+      .rating-options { flex-direction: column; }
     }
     /* Footer credit */
     .footer-credit {
@@ -103,7 +107,7 @@
 
     <label><strong>Number of Questions:</strong></label><br>
     <select id="numQuestions">
-      <option value="1">1</option>  <!-- Temp for testing -->
+      <option value="1">1</option>
       <option value="30">30</option>
       <option value="60">60</option>
       <option value="90">90</option>
@@ -126,6 +130,14 @@
       <button class="incorrect" onclick="markAnswer(false)">❌ Incorrect</button>
     </div>
 
+    <!-- Difficulty Rating (hidden until mark) -->
+    <div class="rating-options hidden" id="ratingOptions">
+      <button class="rating-btn" onclick="rateDifficulty('Easy')">Easy</button>
+      <button class="rating-btn" onclick="rateDifficulty('Medium')">Medium</button>
+      <button class="rating-btn" onclick="rateDifficulty('Hard')">Hard</button>
+      <button class="rating-btn" onclick="skipRating()" style="background: #757575;">Skip</button>
+    </div>
+
     <div style="margin-top:1rem; text-align:center;">
       <strong>Progress:</strong> <span id="progress">0 / 0</span>
     </div>
@@ -134,7 +146,7 @@
   <!-- ==== SUMMARY ==== -->
   <div id="summary" class="card hidden summary">
     <h2>🎉 Quiz Complete!</h2>
-    <div class="test-complete">Test Complete! Great Job! 🏆</div>  <!-- Added emoji for fun -->
+    <div class="test-complete">Test Complete! Great Job! 🏆</div>
     <p><strong>Hi <span id="nameDisplay"></span>!</strong></p>
     <p><strong>Total Questions:</strong> <span id="totalQ"></span></p>
     <p><strong>Marks Earned:</strong> <span id="earned"></span> / <span id="possible"></span></p>
@@ -146,11 +158,8 @@
   <div class="footer-credit">Developed by Oxford SDA Church</div>
 
   <script>
-    // ==== UPDATE WITH YOUR NEW URL AFTER REDEPLOY ====
     const API_URL = "https://script.google.com/macros/s/AKfycbwPpBErG-PDHSZ8tNtL3ulUf1_6WfgfNna1JBEzqwshrgpBCNILXWZWT_jXQYlVN8jPHw/exec";
-    // =================================================
 
-    // Full Bible book chapter counts (customized for Isaiah 1-33 focus)
     const chaptersPerBook = {
       "1 Chronicles": 29, "1 Corinthians": 16, "1 John": 5, "1 Kings": 22, "1 Peter": 5,
       "1 Samuel": 31, "1 Thessalonians": 5, "1 Timothy": 6, "2 Chronicles": 36,
@@ -171,8 +180,12 @@
     let allQuestions = [], quizQuestions = [], currentIdx = 0;
     let earned = 0, possible = 0, userName = '';
     let timerInterval, timeLeft = 25;
+    let questionLogs = [];  // Per-question data
+    let quizStartTime = 0;  // Overall quiz time
+    let questionStartTime = 0;  // Per-question start
+    let currentQuestionData = {};  // Temp for current q
+    let selectedChapters = [];  // From startQuiz
 
-    // Load books & chapters
     async function loadConfig() {
       try {
         console.log('Fetching config from:', API_URL);
@@ -201,7 +214,6 @@
           const selBook = bookSel.value;
           if (!selBook) return;
 
-          // Get max chapters for this book
           const maxCh = chaptersPerBook[selBook] || 1;
           const chapters = Array.from({length: maxCh}, (_, i) => i + 1);
 
@@ -224,16 +236,16 @@
       userName = document.getElementById('userName').value.trim();
       const book = document.getElementById('bookSelect').value;
       const chapSel = document.getElementById('chapterSelect');
-      const chapters = Array.from(chapSel.selectedOptions).map(o => o.value).filter(c => c);
+      selectedChapters = Array.from(chapSel.selectedOptions).map(o => o.value).filter(c => c);
       const n = document.getElementById('numQuestions').value;
 
-      if (!userName || !book || chapters.length === 0) {
+      if (!userName || !book || selectedChapters.length === 0) {
         alert('Please select your name, a book, and at least one chapter.');
         return;
       }
 
       try {
-        const url = `${API_URL}?book=${encodeURIComponent(book)}&chapters=${chapters.join(',')}&n=${n}`;
+        const url = `${API_URL}?book=${encodeURIComponent(book)}&chapters=${selectedChapters.join(',')}&n=${n}`;
         console.log('Fetching quiz from:', url);
         const response = await fetch(url);
         if (!response.ok) {
@@ -249,6 +261,8 @@
         document.getElementById('config').classList.add('hidden');
         document.getElementById('quiz').classList.remove('hidden');
         currentIdx = 0; earned = 0; possible = 0;
+        questionLogs = [];  // Reset
+        quizStartTime = Date.now();  // Overall start
         showQuestion();
       } catch (error) {
         console.error('Start quiz failed:', error);
@@ -264,9 +278,11 @@
       document.getElementById('answer').innerHTML = `<strong>Answer:</strong> ${q.AnswerText}`;
       document.getElementById('showAnswer').classList.add('hidden');
       document.getElementById('markOptions').classList.add('hidden');
+      document.getElementById('ratingOptions').classList.add('hidden');  // Hide rating
       document.getElementById('progress').textContent = `${currentIdx + 1} / ${quizQuestions.length}`;
 
-      // Start 25-second timer
+      currentQuestionData = { ref: `${q.Book} ${q.Chapter}:${q.Verse}`, difficulty: q.Difficulty || 'Unknown', topic: q.Topic || 'General', questionStartTime: Date.now() };  // Start timers
+
       timeLeft = 25;
       document.getElementById('timer').textContent = timeLeft;
       document.getElementById('timer').classList.remove('hidden');
@@ -277,72 +293,145 @@
           clearInterval(timerInterval);
           document.getElementById('showAnswer').classList.remove('hidden');
           document.getElementById('timer').textContent = 'Time\'s up!';
+          // Log timeout as skip if not marked
+          if (!currentQuestionData.marked) {
+            logQuestion(false, 'timeout');  // Skip
+          }
         }
       }, 1000);
     }
 
     function showAnswer() {
       clearInterval(timerInterval);
+      const timeToView = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);  // #2 Time to View Answer
+      currentQuestionData.timeToViewAnswer = timeToView;
       document.getElementById('answer').style.display = 'block';
       document.getElementById('markOptions').classList.remove('hidden');
       document.getElementById('showAnswer').classList.add('hidden');
       document.getElementById('timer').classList.add('hidden');
+      console.log(`Time to view answer: ${timeToView}s`);
     }
 
     function markAnswer(correct) {
-      const q = quizQuestions[currentIdx];
-      const marks = parseInt(q.MarkValue) || 1;
+      const marks = parseInt(quizQuestions[currentIdx].MarkValue) || 1;
       if (correct) earned += marks;
       possible += marks;
-      console.log(`Marked ${correct ? 'correct' : 'wrong'}: +${marks} marks. Total: ${earned}/${possible}`);  // Debug log
 
+      const responseTime = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);  // #1 Response Time
+      const selection = correct ? 'correct' : 'incorrect';  // #4 Selection Pattern
+      currentQuestionData.responseTime = responseTime;
+      currentQuestionData.correct = correct;
+      currentQuestionData.selection = selection;
+      currentQuestionData.marked = true;  // #10 Answered
+      currentQuestionData.clickPattern = 'markAnswer';  // #8 Click Pattern
+
+      console.log(`Marked ${selection}: +${marks} marks. Total: ${earned}/${possible}. Response time: ${responseTime}s`);
+
+      document.getElementById('markOptions').classList.add('hidden');
+      document.getElementById('ratingOptions').classList.remove('hidden');  // Show rating (#6)
+
+      // Auto-advance after rating or skip
+      setTimeout(() => {
+        if (currentQuestionData.difficultyRated) {
+          advanceQuestion();
+        }
+      }, 5000);  // 5s timeout for rating
+    }
+
+    function rateDifficulty(rating) {
+      currentQuestionData.difficultyFeedback = rating;  // #6
+      currentQuestionData.difficultyRated = true;
+      document.getElementById('ratingOptions').classList.add('hidden');
+      advanceQuestion();
+      console.log(`Rated difficulty: ${rating}`);
+    }
+
+    function skipRating() {
+      currentQuestionData.difficultyFeedback = 'Skipped';  // #6
+      currentQuestionData.difficultyRated = true;
+      document.getElementById('ratingOptions').classList.add('hidden');
+      advanceQuestion();
+      console.log('Skipped rating');
+    }
+
+    function advanceQuestion() {
       currentIdx++;
       if (currentIdx < quizQuestions.length) {
-        setTimeout(showQuestion, 1500);
+        showQuestion();
       } else {
-        console.log('Quiz end — calling showSummary');  // Debug
         showSummary();
       }
     }
 
-async function showSummary() {
-  console.log('showSummary called! Hiding quiz, showing summary.');  // Debug
-  document.getElementById('quiz').classList.add('hidden');
-  const sum = document.getElementById('summary');
-  sum.classList.remove('hidden');
-  document.getElementById('nameDisplay').textContent = userName;
-  document.getElementById('totalQ').textContent = quizQuestions.length;
-  document.getElementById('earned').textContent = earned;
-  document.getElementById('possible').textContent = possible;
-  document.getElementById('percent').textContent = possible ? Math.round(earned / possible * 100) : 0;
+    async function showSummary() {
+      const overallTime = Math.round((Date.now() - quizStartTime) / 1000 / 60);  // Minutes (#7 Progress)
+      const correctCount = questionLogs.filter(log => log.correct).length;  // #3 Frequency
+      const incorrectCount = questionLogs.length - correctCount;
+      const skippedCount = questionLogs.filter(log => log.selection === 'skip').length;  // #10 Skipped
 
-  // Calculate numbers for logging
-  const scorePercent = possible ? Math.round(earned / possible * 100) : 0;
+      document.getElementById('quiz').classList.add('hidden');
+      const sum = document.getElementById('summary');
+      sum.classList.remove('hidden');
+      document.getElementById('nameDisplay').textContent = userName;
+      document.getElementById('totalQ').textContent = quizQuestions.length;
+      document.getElementById('earned').textContent = earned;
+      document.getElementById('possible').textContent = possible;
+      document.getElementById('percent').textContent = possible ? Math.round(earned / possible * 100) : 0;
 
-  // ✅ Send via GET instead of POST to avoid CORS
-  const url = `${API_URL}?action=logScore&name=${encodeURIComponent(userName)}&score=${scorePercent}&questions=${quizQuestions.length}`;
+      // Log all data (#7 Completion)
+      const logData = new URLSearchParams({
+        action: 'logQuiz',
+        name: userName,
+        score: possible ? Math.round(earned / possible * 100) : 0,
+        questions: quizQuestions.length,
+        correct: correctCount,
+        incorrect: incorrectCount,
+        skipped: skippedCount,
+        overallTime: overallTime,
+        chapters: selectedChapters.join(','),
+        questionLogs: JSON.stringify(questionLogs)  // Stringify array for param
+      });
 
-  console.log('Logging score using GET:', url); // Debug
-
-  try {
-    const response = await fetch(url);
-    const result = await response.json();
-    if (result.success) {
-      console.log('Score logged successfully!');
-    } else {
-      console.error('Log failed:', result);
+      console.log('Sending full log:', logData.toString());
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: logData
+        });
+        if (response.ok) {
+          console.log('Full log sent successfully!');
+        } else {
+          console.error('Log failed:', response.status);
+        }
+      } catch (err) {
+        console.error('Full log failed:', err);
+      }
     }
-  } catch (err) {
-    console.error('Score log failed:', err);
-  }
-}
+
+    function logQuestion(correct, selection) {
+      const timeToView = currentQuestionData.timeToViewAnswer || 0;  // #2
+      const responseTime = currentQuestionData.responseTime || 0;  // #1
+      const difficulty = currentQuestionData.difficultyFeedback || 'Skipped';  // #6
+      const clickPattern = currentQuestionData.clickPattern || 'timeout';  // #8
+      const progressIdx = currentIdx + 1;  // #7
+
+      questionLogs.push({
+        ref: currentQuestionData.ref,
+        correct: correct,
+        selection: selection,  // #4
+        timeToViewAnswer: timeToView,
+        responseTime: responseTime,
+        difficultyFeedback: difficulty,
+        clickPattern: clickPattern,
+        progressIdx: progressIdx,
+        isSkipped: selection === 'skip' || selection === 'timeout'  // #5, #10
+      });
+
+      console.log('Logged question data:', questionLogs[questionLogs.length - 1]);
+    }
 
     // Start
     loadConfig();
   </script>
 </body>
 </html>
-
-
-
-
