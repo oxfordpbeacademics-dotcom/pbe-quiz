@@ -58,13 +58,10 @@
       flex: 1;
       max-width: none;
     }
-    .rating-options { display: flex; gap: 0.5rem; justify-content: center; margin: 0.5rem 0; }
-    .rating-btn { background: #2196F3; font-size: 0.9rem; padding: 0.4rem; min-width: 60px; }
-    .rating-btn:hover { background: #1976D2; }
+    .skip-btn { background: #757575; }
     @media (max-width: 480px) {
       .card { padding: 1rem; }
       .options { flex-direction: column; }
-      .rating-options { flex-direction: column; }
     }
     /* Footer credit */
     .footer-credit {
@@ -123,18 +120,16 @@
     <div class="timer" id="timer">25</div>
     <div class="answer" id="answer"></div>
 
-    <button id="showAnswer" class="hidden" onclick="showAnswer()">Show Answer ❓</button>
+    <div class="options" id="preAnswerOptions">
+      <button id="showAnswer" onclick="onShowAnswer()">Show Answer ❓</button>
+      <button id="skipBtn" class="skip-btn" onclick="onSkip()">Skip ⏭️</button>
+    </div>
 
     <div class="options hidden" id="markOptions">
       <button class="got-it" onclick="markAnswer(true)">✅ I Got It!</button>
       <button class="incorrect" onclick="markAnswer(false)">❌ Incorrect</button>
     </div>
 
-    <!-- Difficulty Rating (hidden until mark) -->
-    <div class="rating-options hidden" id="ratingOptions">
-      <button class="rating-btn" onclick="skipRating()" style="background: #757575;">Skip</button>
-    </div>
-    
     <div style="margin-top:1rem; text-align:center;">
       <strong>Progress:</strong> <span id="progress">0 / 0</span>
     </div>
@@ -176,10 +171,9 @@
 
     let allQuestions = [], quizQuestions = [], currentIdx = 0;
     let earned = 0, possible = 0, userName = '';
-    let timerInterval, timeLeft = 25;
+    let timerInterval = null, timeLeft = 25;
     let questionLogs = [];  // Per-question data
     let quizStartTime = 0;  // Overall quiz time
-    let questionStartTime = 0;  // Per-question start
     let currentQuestionData = {};  // Temp for current q
     let selectedChapters = [];  // From startQuiz
 
@@ -268,87 +262,122 @@
     }
 
     function showQuestion() {
+      clearInterval(timerInterval);
       const q = quizQuestions[currentIdx];
       document.getElementById('ref').textContent = `${q.Book} ${q.Chapter}:${q.Verse}`;
       document.getElementById('qtext').textContent = q.QuestionText;
       document.getElementById('answer').style.display = 'none';
       document.getElementById('answer').innerHTML = `<strong>Answer:</strong> ${q.AnswerText}`;
-      document.getElementById('showAnswer').classList.add('hidden');
+      document.getElementById('showAnswer').classList.remove('hidden');
+      document.getElementById('skipBtn').classList.remove('hidden');
+      document.getElementById('preAnswerOptions').classList.remove('hidden');
       document.getElementById('markOptions').classList.add('hidden');
-      document.getElementById('ratingOptions').classList.add('hidden');  // Hide rating
       document.getElementById('progress').textContent = `${currentIdx + 1} / ${quizQuestions.length}`;
 
-      currentQuestionData = { ref: `${q.Book} ${q.Chapter}:${q.Verse}`, difficulty: q.Difficulty || 'Unknown', topic: q.Topic || 'General', questionStartTime: Date.now() };  // Start timers
+      // Initialize current question data
+      currentQuestionData = {
+        ref: `${q.Book} ${q.Chapter}:${q.Verse}`,
+        difficulty: q.Difficulty || 'Unknown',
+        topic: q.Topic || 'General',
+        questionStartTime: Date.now(),
+        marked: false,
+        timedOut: false
+      };
 
       timeLeft = 25;
       document.getElementById('timer').textContent = timeLeft;
       document.getElementById('timer').classList.remove('hidden');
+
       timerInterval = setInterval(() => {
         timeLeft--;
         document.getElementById('timer').textContent = timeLeft;
         if (timeLeft <= 0) {
           clearInterval(timerInterval);
-          document.getElementById('showAnswer').classList.remove('hidden');
-          document.getElementById('timer').textContent = 'Time\'s up!';
-          // Log timeout as skip if not marked
-          if (!currentQuestionData.marked) {
-            logQuestion(false, 'timeout');  // Skip
-          }
+          onTimeout();
         }
       }, 1000);
     }
 
-    function showAnswer() {
+    // User clicks Show Answer during timer
+    function onShowAnswer() {
       clearInterval(timerInterval);
-      const timeToView = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);  // #2 Time to View Answer
-      currentQuestionData.timeToViewAnswer = timeToView;
+      revealAnswerForFeedback('showAnswer');
+    }
+
+    // User clicks Skip during timer
+    function onSkip() {
+      clearInterval(timerInterval);
+      // Reveal answer, mark incorrect, log, then advance automatically after short pause
+      revealAnswerImmediateIncorrect();
+    }
+
+    // Timer reached 0: reveal answer and wait for user feedback (same as show answer)
+    function onTimeout() {
+      currentQuestionData.timedOut = true;
+      revealAnswerForFeedback('timeout');
+    }
+
+    function revealAnswerForFeedback(trigger) {
+      // Show the answer and the mark buttons; wait for user to mark
       document.getElementById('answer').style.display = 'block';
+      document.getElementById('preAnswerOptions').classList.add('hidden');
       document.getElementById('markOptions').classList.remove('hidden');
-      document.getElementById('showAnswer').classList.add('hidden');
       document.getElementById('timer').classList.add('hidden');
-      console.log(`Time to view answer: ${timeToView}s`);
+
+      // record time to view the answer
+      currentQuestionData.timeToViewAnswer = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);
+      currentQuestionData.clickPattern = trigger;
+      console.log(`Answer revealed (${trigger}). timeToViewAnswer: ${currentQuestionData.timeToViewAnswer}s`);
+    }
+
+    function revealAnswerImmediateIncorrect() {
+      document.getElementById('answer').style.display = 'block';
+      document.getElementById('preAnswerOptions').classList.add('hidden');
+      document.getElementById('markOptions').classList.add('hidden');
+      document.getElementById('timer').classList.add('hidden');
+
+      // mark as skipped/incorrect immediately
+      const marks = parseInt(quizQuestions[currentIdx].MarkValue) || 1;
+      possible += marks;
+      // earned unchanged (incorrect)
+      currentQuestionData.responseTime = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);
+      currentQuestionData.timeToViewAnswer = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);
+      currentQuestionData.correct = false;
+      currentQuestionData.selection = 'skip';
+      currentQuestionData.marked = true;
+      currentQuestionData.clickPattern = 'skip';
+
+      logQuestion(currentQuestionData); // pushes into questionLogs
+
+      // short pause so user can see answer, then advance
+      setTimeout(() => {
+        advanceQuestion();
+      }, 1200); // 1.2s pause for visibility
     }
 
     function markAnswer(correct) {
+      if (currentQuestionData.marked) {
+        // guard against double-marking
+        return;
+      }
+
       const marks = parseInt(quizQuestions[currentIdx].MarkValue) || 1;
       if (correct) earned += marks;
       possible += marks;
 
-      const responseTime = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);  // #1 Response Time
-      const selection = correct ? 'correct' : 'incorrect';  // #4 Selection Pattern
-      currentQuestionData.responseTime = responseTime;
-      currentQuestionData.correct = correct;
-      currentQuestionData.selection = selection;
-      currentQuestionData.marked = true;  // #10 Answered
-      currentQuestionData.clickPattern = 'markAnswer';  // #8 Click Pattern
+      currentQuestionData.responseTime = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);
+      currentQuestionData.correct = !!correct;
+      currentQuestionData.selection = correct ? 'correct' : 'incorrect';
+      currentQuestionData.marked = true;
+      currentQuestionData.clickPattern = 'markAnswer';
 
-      console.log(`Marked ${selection}: +${marks} marks. Total: ${earned}/${possible}. Response time: ${responseTime}s`);
+      // Log and advance immediately
+      logQuestion(currentQuestionData);
 
-      document.getElementById('markOptions').classList.add('hidden');
-      document.getElementById('ratingOptions').classList.remove('hidden');  // Show rating (#6)
-
-      // Auto-advance after rating or skip
+      // auto-advance shortly to give visual confirmation
       setTimeout(() => {
-        if (currentQuestionData.difficultyRated) {
-          advanceQuestion();
-        }
-      }, 5000);  // 5s timeout for rating
-    }
-
-    function rateDifficulty(rating) {
-      currentQuestionData.difficultyFeedback = rating;  // #6
-      currentQuestionData.difficultyRated = true;
-      document.getElementById('ratingOptions').classList.add('hidden');
-      advanceQuestion();
-      console.log(`Rated difficulty: ${rating}`);
-    }
-
-    function skipRating() {
-      currentQuestionData.difficultyFeedback = 'Skipped';  // #6
-      currentQuestionData.difficultyRated = true;
-      document.getElementById('ratingOptions').classList.add('hidden');
-      advanceQuestion();
-      console.log('Skipped rating');
+        advanceQuestion();
+      }, 400); // short delay to let user see their action
     }
 
     function advanceQuestion() {
@@ -361,10 +390,11 @@
     }
 
     async function showSummary() {
-      const overallTime = Math.round((Date.now() - quizStartTime) / 1000 / 60);  // Minutes (#7 Progress)
-      const correctCount = questionLogs.filter(log => log.correct).length;  // #3 Frequency
+      clearInterval(timerInterval);
+      const overallTimeMinutes = Math.round((Date.now() - quizStartTime) / 1000 / 60);  // Minutes
+      const correctCount = questionLogs.filter(log => log.correct).length;
       const incorrectCount = questionLogs.length - correctCount;
-      const skippedCount = questionLogs.filter(log => log.selection === 'skip').length;  // #10 Skipped
+      const skippedCount = questionLogs.filter(log => log.selection === 'skip').length;
 
       document.getElementById('quiz').classList.add('hidden');
       const sum = document.getElementById('summary');
@@ -384,7 +414,7 @@
         correct: correctCount,
         incorrect: incorrectCount,
         skipped: skippedCount,
-        overallTime: overallTime,
+        overallTime: overallTimeMinutes,
         chapters: selectedChapters.join(','),
         questionLogs: JSON.stringify(questionLogs)  // Stringify array for param
       });
@@ -405,26 +435,28 @@
       }
     }
 
-    function logQuestion(correct, selection) {
-      const timeToView = currentQuestionData.timeToViewAnswer || 0;  // #2
-      const responseTime = currentQuestionData.responseTime || 0;  // #1
-      const difficulty = currentQuestionData.difficultyFeedback || 'Skipped';  // #6
-      const clickPattern = currentQuestionData.clickPattern || 'timeout';  // #8
-      const progressIdx = currentIdx + 1;  // #7
+    function logQuestion(qData) {
+      // Ensure required fields exist with sensible defaults
+      const timeToView = qData.timeToViewAnswer || 0;
+      const responseTime = qData.responseTime || 0;
+      const difficulty = qData.difficulty || 'Unknown';
+      const clickPattern = qData.clickPattern || 'unknown';
+      const progressIdx = currentIdx + 1;
 
-      questionLogs.push({
-        ref: currentQuestionData.ref,
-        correct: correct,
-        selection: selection,  // #4
+      const logEntry = {
+        ref: qData.ref,
+        correct: !!qData.correct,
+        selection: qData.selection || (qData.correct ? 'correct' : 'incorrect'),
         timeToViewAnswer: timeToView,
         responseTime: responseTime,
         difficultyFeedback: difficulty,
         clickPattern: clickPattern,
         progressIdx: progressIdx,
-        isSkipped: selection === 'skip' || selection === 'timeout'  // #5, #10
-      });
+        isSkipped: qData.selection === 'skip'
+      };
 
-      console.log('Logged question data:', questionLogs[questionLogs.length - 1]);
+      questionLogs.push(logEntry);
+      console.log('Logged question data:', logEntry);
     }
 
     // Start
