@@ -43,7 +43,7 @@
       font-size: 1.6rem; 
       color: var(--primary); 
       margin-bottom: 1rem; 
-      display: block !important;  
+      display: block !important;  /* Force show */
       font-weight: bold;
       text-align: center;
     }
@@ -58,13 +58,9 @@
       flex: 1;
       max-width: none;
     }
-    .rating-options { display: flex; gap: 0.5rem; justify-content: center; margin: 0.5rem 0; }
-    .rating-btn { background: #2196F3; font-size: 0.9rem; padding: 0.4rem; min-width: 60px; }
-    .rating-btn:hover { background: #1976D2; }
     @media (max-width: 480px) {
       .card { padding: 1rem; }
       .options { flex-direction: column; }
-      .rating-options { flex-direction: column; }
     }
     /* Footer credit */
     .footer-credit {
@@ -128,14 +124,6 @@
     <div class="options hidden" id="markOptions">
       <button class="got-it" onclick="markAnswer(true)">✅ I Got It!</button>
       <button class="incorrect" onclick="markAnswer(false)">❌ Incorrect</button>
-    </div>
-
-    <!-- Difficulty Rating (hidden until mark) -->
-    <div class="rating-options hidden" id="ratingOptions">
-      <button class="rating-btn" onclick="rateDifficulty('Easy')">Easy</button>
-      <button class="rating-btn" onclick="rateDifficulty('Medium')">Medium</button>
-      <button class="rating-btn" onclick="rateDifficulty('Hard')">Hard</button>
-      <button class="rating-btn" onclick="skipRating()" style="background: #757575;">Skip</button>
     </div>
 
     <div style="margin-top:1rem; text-align:center;">
@@ -278,7 +266,6 @@
       document.getElementById('answer').innerHTML = `<strong>Answer:</strong> ${q.AnswerText}`;
       document.getElementById('showAnswer').classList.add('hidden');
       document.getElementById('markOptions').classList.add('hidden');
-      document.getElementById('ratingOptions').classList.add('hidden');  // Hide rating
       document.getElementById('progress').textContent = `${currentIdx + 1} / ${quizQuestions.length}`;
 
       currentQuestionData = { ref: `${q.Book} ${q.Chapter}:${q.Verse}`, difficulty: q.Difficulty || 'Unknown', topic: q.Topic || 'General', questionStartTime: Date.now() };  // Start timers
@@ -303,7 +290,7 @@
 
     function showAnswer() {
       clearInterval(timerInterval);
-      const timeToView = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);  // #2 Time to View Answer
+      const timeToView = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);  // Time to View Answer
       currentQuestionData.timeToViewAnswer = timeToView;
       document.getElementById('answer').style.display = 'block';
       document.getElementById('markOptions').classList.remove('hidden');
@@ -317,41 +304,18 @@
       if (correct) earned += marks;
       possible += marks;
 
-      const responseTime = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);  // #1 Response Time
-      const selection = correct ? 'correct' : 'incorrect';  // #4 Selection Pattern
+      const responseTime = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);  // Response Time
+      const selection = correct ? 'correct' : 'incorrect';  // Selection Pattern
       currentQuestionData.responseTime = responseTime;
       currentQuestionData.correct = correct;
       currentQuestionData.selection = selection;
-      currentQuestionData.marked = true;  // #10 Answered
-      currentQuestionData.clickPattern = 'markAnswer';  // #8 Click Pattern
+      currentQuestionData.marked = true;  // Answered
+      currentQuestionData.clickPattern = 'markAnswer';  // Click Pattern
 
       console.log(`Marked ${selection}: +${marks} marks. Total: ${earned}/${possible}. Response time: ${responseTime}s`);
 
-      document.getElementById('markOptions').classList.add('hidden');
-      document.getElementById('ratingOptions').classList.remove('hidden');  // Show rating (#6)
-
-      // Auto-advance after rating or skip
-      setTimeout(() => {
-        if (currentQuestionData.difficultyRated) {
-          advanceQuestion();
-        }
-      }, 5000);  // 5s timeout for rating
-    }
-
-    function rateDifficulty(rating) {
-      currentQuestionData.difficultyFeedback = rating;  // #6
-      currentQuestionData.difficultyRated = true;
-      document.getElementById('ratingOptions').classList.add('hidden');
-      advanceQuestion();
-      console.log(`Rated difficulty: ${rating}`);
-    }
-
-    function skipRating() {
-      currentQuestionData.difficultyFeedback = 'Skipped';  // #6
-      currentQuestionData.difficultyRated = true;
-      document.getElementById('ratingOptions').classList.add('hidden');
-      advanceQuestion();
-      console.log('Skipped rating');
+      logQuestion(correct, selection);  // Log immediately
+      advanceQuestion();  // Advance without rating
     }
 
     function advanceQuestion() {
@@ -364,10 +328,10 @@
     }
 
     async function showSummary() {
-      const overallTime = Math.round((Date.now() - quizStartTime) / 1000 / 60);  // Minutes (#7 Progress)
-      const correctCount = questionLogs.filter(log => log.correct).length;  // #3 Frequency
+      const overallTime = Math.round((Date.now() - quizStartTime) / 1000 / 60);  // Minutes (Progress)
+      const correctCount = questionLogs.filter(log => log.correct).length;  // Frequency
       const incorrectCount = questionLogs.length - correctCount;
-      const skippedCount = questionLogs.filter(log => log.selection === 'skip').length;  // #10 Skipped
+      const skippedCount = questionLogs.filter(log => log.selection === 'skip').length;  // Skipped
 
       document.getElementById('quiz').classList.add('hidden');
       const sum = document.getElementById('summary');
@@ -378,7 +342,7 @@
       document.getElementById('possible').textContent = possible;
       document.getElementById('percent').textContent = possible ? Math.round(earned / possible * 100) : 0;
 
-      // Log all data (#7 Completion)
+      // Log all data (Completion)
       const logData = new URLSearchParams({
         action: 'logQuiz',
         name: userName,
@@ -409,22 +373,20 @@
     }
 
     function logQuestion(correct, selection) {
-      const timeToView = currentQuestionData.timeToViewAnswer || 0;  // #2
-      const responseTime = currentQuestionData.responseTime || 0;  // #1
-      const difficulty = currentQuestionData.difficultyFeedback || 'Skipped';  // #6
-      const clickPattern = currentQuestionData.clickPattern || 'timeout';  // #8
-      const progressIdx = currentIdx + 1;  // #7
+      const timeToView = currentQuestionData.timeToViewAnswer || 0;  // Time to View Answer
+      const responseTime = currentQuestionData.responseTime || 0;  // Response Time
+      const clickPattern = currentQuestionData.clickPattern || 'timeout';  // Click Pattern
+      const progressIdx = currentIdx + 1;  // Progress
 
       questionLogs.push({
         ref: currentQuestionData.ref,
         correct: correct,
-        selection: selection,  // #4
+        selection: selection,  // Selection Pattern
         timeToViewAnswer: timeToView,
         responseTime: responseTime,
-        difficultyFeedback: difficulty,
         clickPattern: clickPattern,
         progressIdx: progressIdx,
-        isSkipped: selection === 'skip' || selection === 'timeout'  // #5, #10
+        isSkipped: selection === 'skip' || selection === 'timeout'  // Skips/Timeouts
       });
 
       console.log('Logged question data:', questionLogs[questionLogs.length - 1]);
@@ -435,4 +397,3 @@
   </script>
 </body>
 </html>
-
