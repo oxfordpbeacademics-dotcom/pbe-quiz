@@ -165,10 +165,18 @@ function renderChapterChart(logs) {
   const labels = Object.keys(chapterMap);
   const data = labels.map(ch=>Math.round(chapterMap[ch].correct/chapterMap[ch].total*100));
   chapterChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels:labels.map(ch=>'Ch '+ch), datasets:[{data:data, backgroundColor:['#4CAF50','#FF9800','#2196F3','#F44336']] }],
-    options:{plugins:{legend:{position:'bottom'}}}
-  });
+  type: 'doughnut',
+  data: { 
+    labels: labels.map(ch => 'Ch ' + ch),
+    datasets: [{
+      data: data,
+      backgroundColor: ['#4CAF50', '#FF9800', '#2196F3', '#F44336']
+    }]
+  },
+  options: { 
+    plugins: { legend: { position: 'bottom' } } 
+  }
+});
 }
 
 function renderScoresTable(scores) {
