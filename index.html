@@ -266,13 +266,12 @@
       const q = quizQuestions[currentIdx];
       document.getElementById('ref').textContent = `${q.Book} ${q.Chapter}:${q.Verse}`;
       const questionText = q.QuestionText || q.Question || "⚠️ (No question text found)";
-document.getElementById('qtext').innerHTML = `
-  ${questionText}
-  <div style="font-size:1rem; color:#555; margin-top:0.5rem;">
-    🟢 <strong>Worth ${q.MarkValue || 1} point${(q.MarkValue || 1) > 1 ? 's' : ''}</strong>
-  </div>
-`;
-
+      document.getElementById('qtext').innerHTML = `
+      ${questionText}
+      <div style="font-size:1rem; color:#555; margin-top:0.5rem;">
+        <strong> ${q.MarkValue || 1} point${(q.MarkValue || 1) > 1 ? 's' : ''}</strong>
+      </div>
+`     ;
       document.getElementById('answer').style.display = 'none';
       document.getElementById('answer').innerHTML = `<strong>Answer:</strong> ${q.AnswerText}`;
       document.getElementById('showAnswer').classList.remove('hidden');
@@ -471,6 +470,7 @@ document.getElementById('qtext').innerHTML = `
   </script>
 </body>
 </html>
+
 
 
 
