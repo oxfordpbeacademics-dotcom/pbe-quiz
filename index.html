@@ -200,6 +200,21 @@
           opt.value = b; opt.textContent = b;
           bookSel.appendChild(opt);
         });
+        
+        // ✅ Default to Isaiah if it exists
+        if (books.includes("Isaiah")) {
+          bookSel.value = "Isaiah";
+          // Automatically load Isaiah’s chapters too
+          const maxCh = chaptersPerBook["Isaiah"] || 1;
+          const chapSel = document.getElementById('chapterSelect');
+          chapSel.innerHTML = '';
+          for (let i = 1; i <= maxCh; i++) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = `Chapter ${i}`;
+            chapSel.appendChild(opt);
+          }
+        }
 
         bookSel.onchange = () => {
           const selBook = bookSel.value;
@@ -470,6 +485,7 @@
   </script>
 </body>
 </html>
+
 
 
 
