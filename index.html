@@ -352,7 +352,14 @@
     // Timer reached 0: reveal answer and wait for user feedback (same as show answer)
     function onTimeout() {
       currentQuestionData.timedOut = true;
-      revealAnswerForFeedback('timeout');
+    
+      // Stop timer and alert user
+      document.getElementById('timer').textContent = '⏰ Time’s up!';
+      document.getElementById('timer').style.color = '#f44336';
+      clearInterval(timerInterval);
+    
+      // Keep answer hidden — user must still press "Show Answer"
+      alert('⏰ Time’s up! Press "Show Answer" to see the answer.');
     }
 
     function revealAnswerForFeedback(trigger) {
@@ -502,6 +509,7 @@
   </script>
 </body>
 </html>
+
 
 
 
