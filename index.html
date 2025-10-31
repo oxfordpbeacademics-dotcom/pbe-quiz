@@ -156,7 +156,7 @@
   <div class="footer-credit">Developed by Oxford SDA Church</div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbzwA5knv9IMt5PdI3AVcg2PXPemH0VsJsD4P2hIEB-Fvvn12NjikSG3rKy_-q9YazrOgQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyqBbTml5cKeVabL2aH8ZJGO3bacbjemhpnpFJeKDMd_xVxdSyz4KzTWq1_ZPrzNuuhyg/exec";
 
     const chaptersPerBook = {
       "1 Chronicles": 29, "1 Corinthians": 16, "1 John": 5, "1 Kings": 22, "1 Peter": 5,
@@ -244,43 +244,67 @@
       }
     }
 
-    async function startQuiz() {
-      userName = document.getElementById('userName').value.trim();
-      const book = document.getElementById('bookSelect').value;
-      const chapSel = document.getElementById('chapterSelect');
-      selectedChapters = Array.from(chapSel.selectedOptions).map(o => o.value).filter(c => c);
-      const n = document.getElementById('numQuestions').value;
+async function startQuiz() {
+  userName = document.getElementById('userName').value.trim();
+  const book = document.getElementById('bookSelect').value;
+  const chapSel = document.getElementById('chapterSelect');
+  selectedChapters = Array.from(chapSel.selectedOptions).map(o => o.value).filter(c => c);
+  const n = document.getElementById('numQuestions').value;
 
-      if (!userName || !book || selectedChapters.length === 0) {
-        alert('Please select your name, a book, and at least one chapter.');
-        return;
-      }
+  if (!userName || !book || selectedChapters.length === 0) {
+    alert('Please select your name, a book, and at least one chapter.');
+    return;
+  }
 
-      try {
-        const url = `${API_URL}?book=${encodeURIComponent(book)}&chapters=${selectedChapters.join(',')}&n=${n}`;
-        console.log('Fetching quiz from:', url);
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        quizQuestions = await response.json();
+  // ✅ Add timestamp to avoid cached responses
+  const url = `${API_URL}?book=${encodeURIComponent(book)}&chapters=${selectedChapters.join(',')}&n=${n}&t=${Date.now()}`;
+  console.log('Fetching quiz from:', url);
 
-        if (quizQuestions.length === 0) {
-          alert('No questions found for your selection. Add more to your Google Sheet!');
-          return;
-        }
+  try {
+    const response = await fetch(url);
+    const text = await response.text();  // Read as text to inspect
 
-        document.getElementById('config').classList.add('hidden');
-        document.getElementById('quiz').classList.remove('hidden');
-        currentIdx = 0; earned = 0; possible = 0;
-        questionLogs = [];  // Reset
-        quizStartTime = Date.now();  // Overall start
-        showQuestion();
-      } catch (error) {
-        console.error('Start quiz failed:', error);
-        alert(`Error fetching questions: ${error.message}\n\nCheck console (F12).`);
-      }
+    // 🧩 Detect bad responses
+    if (text.startsWith('<') || text.includes('DOCTYPE')) {
+      throw new Error("Received HTML instead of JSON — check Google Script permissions (must be public).");
     }
+
+    // Try parsing JSON manually to catch truncation errors
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (parseErr) {
+      console.error("JSON parsing failed:", parseErr, "\nRaw text:", text.slice(0, 500));
+      throw new Error("Invalid JSON returned from the server — possibly incomplete or timed out.");
+    }
+
+    // ✅ Validate quiz array and structure
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error("No questions returned. Check if your Google Sheet has matching data.");
+    }
+
+    const validQs = parsed.filter(q => q.QuestionText?.trim() || q.Question?.trim());
+    if (validQs.length === 0) {
+      throw new Error("Questions loaded, but none have text fields — check your Sheet headers (must include 'QuestionText' or 'Question').");
+    }
+
+    quizQuestions = validQs;
+    console.log(`Loaded ${quizQuestions.length} valid questions for ${book}.`);
+
+    // ✅ Show quiz
+    document.getElementById('config').classList.add('hidden');
+    document.getElementById('quiz').classList.remove('hidden');
+    currentIdx = 0; earned = 0; possible = 0;
+    questionLogs = [];  
+    quizStartTime = Date.now();
+    showQuestion();
+
+  } catch (error) {
+    console.error("Start quiz failed:", error);
+    alert(`⚠️ Error fetching questions:\n\n${error.message}\n\nCheck browser console (F12) for full details.`);
+  }
+}
+
 
     function showQuestion() {
       clearInterval(timerInterval);
@@ -509,6 +533,7 @@
   </script>
 </body>
 </html>
+
 
 
 
