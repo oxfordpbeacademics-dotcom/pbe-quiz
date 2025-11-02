@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>PBE Quiz Analytics Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
@@ -21,52 +21,61 @@
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>✝️ PBE Quiz Analytics Dashboard</h1>
-  <div id="loading">Loading data...</div>
+  <div class="container">
+    <h1>✝️ PBE Quiz Analytics Dashboard</h1>
+    <div id="loading">Loading data...</div>
 
-  <div id="dashboard" style="display:none;">
-    <label>Filter by Name: </label>
-    <select id="childFilter" onchange="filterData()">
-      <option value="">All Children</option>
-    </select>
+    <div id="dashboard" style="display:none;">
+      <label>Filter by Name: </label>
+      <select id="childFilter" onchange="filterData()">
+        <option value="">All Children</option>
+      </select>
 
-    <div class="stats-grid">
-      <div class="stat-card">Total Quizzes <div id="totalQuizzes" class="stat-number"></div></div>
-      <div class="stat-card">Average Score <div id="avgScore" class="stat-number"></div>%</div>
-      <div class="stat-card">Average Time <div id="avgTime" class="stat-number"></div> min</div>
-      <div class="stat-card">Correct Rate <div id="correctRate" class="stat-number"></div>%</div>
+      <div class="stats-grid">
+        <div class="stat-card">Total Quizzes <div id="totalQuizzes" class="stat-number"></div></div>
+        <div class="stat-card">Average Score <div id="avgScore" class="stat-number"></div>%</div>
+        <div class="stat-card">Average Time <div id="avgTime" class="stat-number"></div> min</div>
+        <div class="stat-card">Correct Rate <div id="correctRate" class="stat-number"></div>%</div>
+      </div>
+
+      <div class="chart-container"><canvas id="scoreChart"></canvas></div>
+      <div class="chart-container"><canvas id="timeChart"></canvas></div>
+      <div class="chart-container"><canvas id="chapterChart"></canvas></div>
+
+      <h2>Recent Scores</h2>
+      <table id="scoresTable"><thead><tr></tr></thead><tbody></tbody></table>
+
+      <h2>Recent Question Logs</h2>
+      <table id="logsTable"><thead><tr></tr></thead><tbody></tbody></table>
     </div>
-
-    <div class="chart-container">
-      <canvas id="scoreChart"></canvas>
-    </div>
-    <div class="chart-container">
-      <canvas id="timeChart"></canvas>
-    </div>
-    <div class="chart-container">
-      <canvas id="chapterChart"></canvas>
-    </div>
-
-    <h2>Recent Scores</h2>
-    <table id="scoresTable">
-      <thead><tr></tr></thead>
-      <tbody></tbody>
-    </table>
-
-    <h2>Recent Question Logs</h2>
-    <table id="logsTable">
-      <thead><tr></tr></thead>
-      <tbody></tbody>
-    </table>
   </div>
-</div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbzece46ltf8T5A_PIgbTZmkEUGF9F-ubkNfTu4L7DY22kFy6BFuUJX5p9MKxP1TJKO5sg/exec?action=dashboard";
 
 let allScores = [], allLogs = [];
 let scoresChart, timeChart, chapterChart;
+
+function toNumber(v) {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number' && isFinite(v)) return v;
+  const s = String(v).trim();
+  if (s === '') return 0;
+  const cleaned = s.replace(/,/g,'').replace(/[^\d.\-]/g,'');
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+}
+function parseTimestamp(ts) {
+  if (!ts) return 0;
+  const p = Date.parse(ts);
+  if (!isNaN(p)) return p;
+  const n = parseFloat(String(ts).replace(/,/g,''));
+  if (!isNaN(n)) {
+    if (n < 1e11) return Math.round(n * 1000);
+    return Math.round(n);
+  }
+  return 0;
+}
 
 async function loadData() {
   try {
@@ -75,6 +84,41 @@ async function loadData() {
     const data = await resp.json();
     allScores = data.scores || [];
     allLogs = data.logs || [];
+
+    // if arrays instead of objects, map to object-like arrays expected later
+    // We'll keep original format (array rows) because table/chart mapping below expects [Name, Date, Score, Questions, Correct, Incorrect, Skipped, Time, Chapters]
+    // But support object rows too:
+    if (allScores.length && typeof allScores[0] === 'object' && !Array.isArray(allScores[0])) {
+      // Convert object -> array in same column order if needed for backward compatibility
+      allScores = allScores.map(o => [
+        o.Name || o.name || '',
+        o.Timestamp || o.Date || o.timestamp || '',
+        o.Score ?? o.score ?? '',
+        o.Questions ?? o.questions ?? '',
+        o.Correct ?? o.correct ?? '',
+        o.Incorrect ?? o.incorrect ?? '',
+        o.Skipped ?? o.skipped ?? '',
+        o["Overall Time (min)"] ?? o.OverallTime ?? o.overallTime ?? '',
+        o.Chapters ?? o.chapters ?? ''
+      ]);
+    }
+
+    if (allLogs.length && typeof allLogs[0] === 'object' && !Array.isArray(allLogs[0])) {
+      allLogs = allLogs.map(o => [
+        o.Name || o.name || '',
+        o.Timestamp || o.Timestamp || '',
+        o.Ref || o.ref || '',
+        o.Correct ?? o.correct ?? false,
+        o.Selection || o.selection || '',
+        o.TimeToViewAnswer ?? o.timeToViewAnswer ?? 0,
+        o.ResponseTime ?? o.responseTime ?? 0,
+        o.DifficultyFeedback || o.difficultyFeedback || '',
+        o.ClickPattern || o.clickPattern || '',
+        o.ProgressIdx ?? o.progressIdx ?? '',
+        o.IsSkipped ?? o.isSkipped ?? false
+      ]);
+    }
+
     renderDashboard(allScores, allLogs);
   } catch (err) {
     document.getElementById('loading').innerHTML = `<div class="error">Error loading data: ${err.message}</div>`;
@@ -86,22 +130,18 @@ function renderDashboard(scores, logs) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 
-  // Populate Name Filter
-  const names = [...new Set(allScores.map(s => s[0]))].sort();
+  // populate filter with unique names from original allScores (not filtered arg)
+  const names = [...new Set(allScores.map(s => (s[0]||'').toString()))].filter(n=>n).sort();
   const filterSel = document.getElementById('childFilter');
   filterSel.innerHTML = '<option value="">All Children</option>';
   names.forEach(n => filterSel.innerHTML += `<option value="${n}">${n}</option>`);
 
-  // Stats (with numeric conversion)
+  // compute stats (numbers sanitized)
   const totalQuizzes = scores.length;
-  const avgScore = scores.length
-    ? Math.round(scores.reduce((a, s) => a + Number(s[2] || 0), 0) / scores.length)
-    : 0;
-  const avgTime = scores.length
-    ? Math.round(scores.reduce((a, s) => a + Number(s[7] || 0), 0) / scores.length)
-    : 0;
-  const totalCorrect = scores.reduce((a, s) => a + Number(s[4] || 0), 0);
-  const totalQuestions = scores.reduce((a, s) => a + Number(s[3] || 0), 0);
+  const avgScore = totalQuizzes ? Math.round(scores.reduce((a,s) => a + toNumber(s[2]), 0) / totalQuizzes) : 0;
+  const avgTime = totalQuizzes ? Math.round(scores.reduce((a,s) => a + toNumber(s[7]), 0) / totalQuizzes) : 0;
+  const totalCorrect = scores.reduce((a,s) => a + toNumber(s[4]), 0);
+  const totalQuestions = scores.reduce((a,s) => a + toNumber(s[3]), 0);
   const correctRate = totalQuestions ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
   document.getElementById('totalQuizzes').textContent = totalQuizzes;
@@ -113,13 +153,14 @@ function renderDashboard(scores, logs) {
   renderTimeChart(logs);
   renderChapterChart(logs);
   renderScoresTable(scores);
-  renderLogsTable(logs.slice(-10));
+  renderLogsTable(logs);
 }
 
 function filterData() {
   const name = document.getElementById('childFilter').value;
-  const filteredScores = name ? allScores.filter(s => s[0] === name) : allScores;
-  const filteredLogs = name ? allLogs.filter(l => l[0] === name) : allLogs;
+  const filteredScores = name ? allScores.filter(s => (s[0]||'') === name) : allScores;
+  const filteredLogs = name ? allLogs.filter(l => (l[0]||'') === name) : allLogs;
+  // Re-render full dashboard using filtered data (keeps filter usable repeatedly)
   renderDashboard(filteredScores, filteredLogs);
 }
 
@@ -127,88 +168,95 @@ function renderScoreChart(scores) {
   const ctx = document.getElementById('scoreChart').getContext('2d');
   if (scoresChart) scoresChart.destroy();
 
+  // Use last 10 entries (chronological order assumed left->right newest-first)
+  // Table uses: scores.slice(-10).reverse() (newest-first)
+  // Keep chart consistent with table: build same array
   const recent = scores.slice(-10).reverse();
+
+  // IMPORTANT FIX: labels must be "Name (Date)" to match the table (s[0]=Name, s[1]=Date)
+  const labels = recent.map(s => `${s[0] ?? ''}${s[1] ? ' (' + s[1] + ')' : ''}`);
+  const data = recent.map(s => toNumber(s[2]));
+
   scoresChart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: recent.map(s => `${s[1]} (${s[0]})`), // Date (Name)
-      datasets: [{ label: 'Score %', data: recent.map(s => Number(s[2] || 0)), backgroundColor:'#4CAF50' }]
+      labels: labels,
+      datasets: [{
+        label: 'Score %',
+        data: data,
+        backgroundColor: '#4CAF50'
+      }]
     },
-    options: { scales:{y:{beginAtZero:true,max:100}} }
+    options: {
+      scales: { y: { beginAtZero: true, max: 100 } },
+      plugins: { legend: { display: false } }
+    }
   });
 }
 
 function renderTimeChart(logs) {
   const ctx = document.getElementById('timeChart').getContext('2d');
   if (timeChart) timeChart.destroy();
-  const respTimes = logs.map(l=>Number(l[5]||0));
-  const viewTimes = logs.map(l=>Number(l[4]||0));
+  // keep chronological order newest-first to match table behavior
+  const recent = logs.slice(-100).reverse();
+  const labels = recent.map((_,i) => `Q${i+1}`);
+  const respTimes = recent.map(l => toNumber(l[6])); // ResponseTime is index 6 in our logs array mapping
+  const viewTimes = recent.map(l => toNumber(l[5])); // TimeToViewAnswer index 5
   timeChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: logs.map((_,i)=>`Q${i+1}`),
-      datasets:[
-        {label:'Response Time (s)', data:respTimes, borderColor:'#FF9800'},
-        {label:'View Answer Time (s)', data:viewTimes, borderColor:'#2196F3'}
+      labels,
+      datasets: [
+        { label: 'Response Time (s)', data: respTimes, borderColor: '#FF9800', fill:false },
+        { label: 'View Answer Time (s)', data: viewTimes, borderColor: '#2196F3', fill:false }
       ]
     },
-    options:{scales:{y:{beginAtZero:true}}}
+    options: { scales:{ y:{ beginAtZero:true } } }
   });
 }
 
 function renderChapterChart(logs) {
   const ctx = document.getElementById('chapterChart').getContext('2d');
   if (chapterChart) chapterChart.destroy();
-  const chapterMap = {};
-  logs.forEach(l=>{
-    const ch = l[2]?.split(' ')[1]?.split(':')[0] || 'Unknown';
-    if (!chapterMap[ch]) chapterMap[ch]={correct:0,total:0};
-    chapterMap[ch].correct += l[3]?1:0;
-    chapterMap[ch].total += 1;
+  const map = {};
+  logs.forEach(l => {
+    const ref = (l[2] || '').toString();
+    let ch = 'Unknown';
+    const parts = ref.split(' ');
+    if (parts.length >= 2) ch = parts[1].split(':')[0] || 'Unknown';
+    if (!map[ch]) map[ch] = { correct:0, total:0 };
+    map[ch].correct += (l[3] ? 1 : 0);
+    map[ch].total += 1;
   });
-  const labels = Object.keys(chapterMap);
-  const data = labels.map(ch=>Math.round(chapterMap[ch].correct/chapterMap[ch].total*100));
+  const labels = Object.keys(map);
+  const data = labels.map(k => Math.round((map[k].correct / map[k].total) * 100) || 0);
   chapterChart = new Chart(ctx, {
     type: 'doughnut',
-    data: { 
-      labels: labels.map(ch => 'Ch ' + ch),
-      datasets: [{
-        data: data,
-        backgroundColor: ['#4CAF50', '#FF9800', '#2196F3', '#F44336', '#9C27B0', '#00BCD4']
-      }]
-    },
-    options: { 
-      plugins: { legend: { position: 'bottom' } } 
-    }
+    data: { labels: labels.map(l => 'Ch ' + l), datasets: [{ data, backgroundColor: ['#4CAF50','#FF9800','#2196F3','#F44336','#9C27B0'] }] },
+    options: { plugins:{ legend:{ position:'bottom' } } }
   });
 }
 
 function renderScoresTable(scores) {
   const table = document.getElementById('scoresTable');
   if (!scores.length) { table.querySelector('tbody').innerHTML=''; return; }
-
   const headers = ['Name','Date','Score','Questions','Correct Count','Incorrect Count','Skipped Count','Overall Time'];
   table.querySelector('thead tr').innerHTML = headers.map(h=>`<th>${h}</th>`).join('');
-  table.querySelector('tbody').innerHTML = scores.slice(-10).reverse().map(s=>
-    `<tr>${headers.map((_,i)=>`<td>${s[i]!==undefined?s[i]:''}</td>`).join('')}</tr>`).join('');
+  const rows = scores.slice(-10).reverse();
+  table.querySelector('tbody').innerHTML = rows.map(s =>
+    `<tr>${headers.map((_,i) => `<td>${s[i] !== undefined && s[i] !== null ? s[i] : ''}</td>`).join('')}</tr>`
+  ).join('');
 }
 
 function renderLogsTable(logs) {
   const table = document.getElementById('logsTable');
   if (!logs.length) { table.querySelector('tbody').innerHTML=''; return; }
-
-  const headers = ['Name','Ref','Correct','ResponseTime','TimeToViewAnswer','Difficulty','Skipped'];
+  const headers = ['Name','Timestamp','Ref','Correct','Selection','TimeToViewAnswer','ResponseTime','Difficulty','ClickPattern','ProgressIdx','IsSkipped'];
   table.querySelector('thead tr').innerHTML = headers.map(h=>`<th>${h}</th>`).join('');
-  table.querySelector('tbody').innerHTML = logs.map(l=>
-    `<tr>
-      <td>${l[0]||''}</td>
-      <td>${l[2]||''}</td>
-      <td>${l[3]? 'Yes':'No'}</td>
-      <td>${l[5]||0}s</td>
-      <td>${l[4]||0}s</td>
-      <td>${l[6]||''}</td>
-      <td>${l[8]? 'Yes':'No'}</td>
-    </tr>`).join('');
+  const rows = logs.slice(-10).reverse();
+  table.querySelector('tbody').innerHTML = rows.map(r =>
+    `<tr>${headers.map((_,i) => `<td>${r[i] !== undefined && r[i] !== null ? r[i] : ''}</td>`).join('')}</tr>`
+  ).join('');
 }
 
 loadData();
