@@ -3,81 +3,140 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PBE Quiz Analytics Dashboard</title>
+<title>✝️ Oxford Academics PBE Analytics Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
-  .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-  h1 { text-align: center; color: #4CAF50; }
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
-  .stat-card { background: #e8f5e9; padding: 15px; border-radius: 8px; text-align: center; }
-  .stat-number { font-size: 2em; font-weight: bold; color: #4CAF50; }
-  .chart-container { margin: 20px 0; height: 400px; }
-  table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-  th { background: #4CAF50; color: white; }
-  select { padding: 5px; margin-bottom: 10px; }
-  .error { color: red; text-align: center; }
+  :root {
+    --primary: #4CAF50;
+    --light: #f9f9f9;
+    --dark: #333;
+  }
+  body {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    background: linear-gradient(to bottom, #e0f7fa, #ffffff);
+    margin: 0; padding: 1.5rem; color: var(--dark);
+  }
+  h1 {
+    text-align: center;
+    color: var(--primary);
+  }
+  .container {
+    max-width: 1200px;
+    margin: auto;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  select {
+    padding: 0.6rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    margin-bottom: 1rem;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .stat-card {
+    background: #e8f5e9;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+  }
+  .stat-number {
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--primary);
+  }
+  .chart-container {
+    margin: 1.5rem 0;
+    height: 400px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.95rem;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background: var(--primary);
+    color: white;
+  }
+  .footer-credit {
+    text-align: right;
+    color: #555;
+    font-size: 0.8rem;
+    margin-top: 2rem;
+  }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>✝️ PBE Quiz Analytics Dashboard</h1>
-  <div id="loading">Loading data...</div>
+  <h1>✝️ Oxford Academics PBE Analytics Dashboard</h1>
+  <div class="container">
+    <div id="loading">Loading data...</div>
 
-  <div id="dashboard" style="display:none;">
-    <label>Filter by Name: </label>
-    <select id="childFilter" onchange="filterData()">
-      <option value="">All Children</option>
-    </select>
+    <div id="dashboard" style="display:none;">
+      <label><strong>Filter by Name:</strong></label><br>
+      <select id="childFilter" onchange="filterData()">
+        <option value="">All Participants</option>
+      </select>
 
-    <div class="stats-grid">
-      <div class="stat-card">Total Quizzes <div id="totalQuizzes" class="stat-number"></div></div>
-      <div class="stat-card">Average Score <div id="avgScore" class="stat-number"></div>%</div>
-      <div class="stat-card">Average Time <div id="avgTime" class="stat-number"></div> min</div>
-      <div class="stat-card">Correct Rate <div id="correctRate" class="stat-number"></div>%</div>
+      <div class="stats-grid">
+        <div class="stat-card">Total Quizzes<div id="totalQuizzes" class="stat-number"></div></div>
+        <div class="stat-card">Average Score<div id="avgScore" class="stat-number"></div>%</div>
+        <div class="stat-card">Average Time<div id="avgTime" class="stat-number"></div> min</div>
+        <div class="stat-card">Correct Rate<div id="correctRate" class="stat-number"></div>%</div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="scoreChart"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="timeChart"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="chapterChart"></canvas>
+      </div>
+
+      <h2>Recent Scores</h2>
+      <table id="scoresTable">
+        <thead><tr></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <h2>Recent Question Logs</h2>
+      <table id="logsTable">
+        <thead><tr></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
 
-    <div class="chart-container">
-      <canvas id="scoreChart"></canvas>
-    </div>
-    <div class="chart-container">
-      <canvas id="timeChart"></canvas>
-    </div>
-    <div class="chart-container">
-      <canvas id="chapterChart"></canvas>
-    </div>
-
-    <h2>Recent Scores</h2>
-    <table id="scoresTable">
-      <thead><tr></tr></thead>
-      <tbody></tbody>
-    </table>
-
-    <h2>Recent Question Logs</h2>
-    <table id="logsTable">
-      <thead><tr></tr></thead>
-      <tbody></tbody>
-    </table>
+    <div class="footer-credit">Developed by Oxford SDA Church</div>
   </div>
-</div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbzece46ltf8T5A_PIgbTZmkEUGF9F-ubkNfTu4L7DY22kFy6BFuUJX5p9MKxP1TJKO5sg/exec?action=dashboard";
-
 let allScores = [], allLogs = [];
-let scoresChart, timeChart, chapterChart;
+let scoreChart, timeChart, chapterChart;
 
 async function loadData() {
   try {
     const resp = await fetch(API_URL);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     allScores = data.scores || [];
     allLogs = data.logs || [];
     renderDashboard(allScores, allLogs);
   } catch (err) {
-    document.getElementById('loading').innerHTML = `<div class="error">Error loading data: ${err.message}</div>`;
+    document.getElementById('loading').textContent = "⚠️ Failed to load data. Check API.";
     console.error(err);
   }
 }
@@ -86,17 +145,15 @@ function renderDashboard(scores, logs) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 
-  // Populate Name Filter
-  const names = [...new Set(scores.map(s => s[0]))].sort();
-  const filterSel = document.getElementById('childFilter');
-  filterSel.innerHTML = '<option value="">All Children</option>';
-  names.forEach(n => filterSel.innerHTML += `<option value="${n}">${n}</option>`);
+  const names = [...new Set(scores.map(s => s.Name))].sort();
+  const sel = document.getElementById('childFilter');
+  sel.innerHTML = '<option value="">All Participants</option>';
+  names.forEach(n => sel.innerHTML += `<option value="${n}">${n}</option>`);
 
-  // Stats
   const totalQuizzes = scores.length;
-  const avgScore = scores.length ? Math.round(scores.reduce((a,s) => a+s[2],0)/scores.length) : 0;
-  const avgTime = scores.length ? Math.round(scores.reduce((a,s) => a+s[7],0)/scores.length) : 0;
-  const correctRate = scores.length ? Math.round(scores.reduce((a,s) => a+s[4],0) / scores.reduce((a,s) => a+s[3],0) * 100) : 0;
+  const avgScore = totalQuizzes ? Math.round(scores.reduce((a, s) => a + (s.Score || 0), 0) / totalQuizzes) : 0;
+  const avgTime = totalQuizzes ? Math.round(scores.reduce((a, s) => a + (s["Overall Time (min)"] || 0), 0) / totalQuizzes) : 0;
+  const correctRate = totalQuizzes ? Math.round(scores.reduce((a, s) => a + (s.Correct || 0), 0) / scores.reduce((a, s) => a + (s.Questions || 1), 0) * 100) : 0;
 
   document.getElementById('totalQuizzes').textContent = totalQuizzes;
   document.getElementById('avgScore').textContent = avgScore;
@@ -112,100 +169,80 @@ function renderDashboard(scores, logs) {
 
 function filterData() {
   const name = document.getElementById('childFilter').value;
-  const filteredScores = name ? allScores.filter(s => s[0]===name) : allScores;
-  const filteredLogs = name ? allLogs.filter(l => l[0]===name) : allLogs;
-  renderScoresTable(filteredScores);
-  renderLogsTable(filteredLogs.slice(-10));
-  renderScoreChart(filteredScores);
-  renderTimeChart(filteredLogs);
-  renderChapterChart(filteredLogs);
+  const fScores = name ? allScores.filter(s => s.Name === name) : allScores;
+  const fLogs = name ? allLogs.filter(l => l.Name === name) : allLogs;
+  renderScoresTable(fScores);
+  renderLogsTable(fLogs.slice(-10));
+  renderScoreChart(fScores);
+  renderTimeChart(fLogs);
+  renderChapterChart(fLogs);
 }
 
 function renderScoreChart(scores) {
   const ctx = document.getElementById('scoreChart').getContext('2d');
-  if (scoresChart) scoresChart.destroy();
-  scoresChart = new Chart(ctx, {
+  if (scoreChart) scoreChart.destroy();
+  scoreChart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: scores.map(s=>s[0]+' ('+s[1]+')'),
-      datasets: [{ label: 'Score %', data: scores.map(s=>s[2]), backgroundColor:'#4CAF50' }]
+      labels: scores.map(s => `${s.Name} (${s.Timestamp || ''})`),
+      datasets: [{ label: 'Score %', data: scores.map(s => s.Score || 0), backgroundColor: '#4CAF50' }]
     },
-    options: { scales:{y:{beginAtZero:true,max:100}} }
+    options: { scales: { y: { beginAtZero: true, max: 100 } } }
   });
 }
 
 function renderTimeChart(logs) {
   const ctx = document.getElementById('timeChart').getContext('2d');
   if (timeChart) timeChart.destroy();
-  const respTimes = logs.map(l=>l[5]||0);
-  const viewTimes = logs.map(l=>l[4]||0);
   timeChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: logs.map((_,i)=>`Q${i+1}`),
-      datasets:[
-        {label:'Response Time (s)', data:respTimes, borderColor:'#FF9800'},
-        {label:'View Answer Time (s)', data:viewTimes, borderColor:'#2196F3'}
+      labels: logs.map((_, i) => `Q${i + 1}`),
+      datasets: [
+        { label: 'Response Time (s)', data: logs.map(l => l.ResponseTime || 0), borderColor: '#FF9800' },
+        { label: 'Time to View Answer (s)', data: logs.map(l => l.TimeToViewAnswer || 0), borderColor: '#2196F3' }
       ]
     },
-    options:{scales:{y:{beginAtZero:true}}}
+    options: { scales: { y: { beginAtZero: true } } }
   });
 }
 
 function renderChapterChart(logs) {
   const ctx = document.getElementById('chapterChart').getContext('2d');
   if (chapterChart) chapterChart.destroy();
-  const chapterMap = {};
-  logs.forEach(l=>{
-    const ch = l[2]?.split(' ')[1]?.split(':')[0] || 'Unknown';
-    if (!chapterMap[ch]) chapterMap[ch]={correct:0,total:0};
-    chapterMap[ch].correct += l[3]?1:0;
-    chapterMap[ch].total += 1;
+  const chapters = {};
+  logs.forEach(l => {
+    const ref = l.Ref || "";
+    const ch = ref.split(" ")[1]?.split(":")[0] || "Unknown";
+    if (!chapters[ch]) chapters[ch] = { correct: 0, total: 0 };
+    chapters[ch].correct += l.Correct ? 1 : 0;
+    chapters[ch].total += 1;
   });
-  const labels = Object.keys(chapterMap);
-  const data = labels.map(ch=>Math.round(chapterMap[ch].correct/chapterMap[ch].total*100));
+  const labels = Object.keys(chapters);
+  const data = labels.map(ch => Math.round(chapters[ch].correct / chapters[ch].total * 100));
   chapterChart = new Chart(ctx, {
-  type: 'doughnut',
-  data: { 
-    labels: labels.map(ch => 'Ch ' + ch),
-    datasets: [{
-      data: data,
-      backgroundColor: ['#4CAF50', '#FF9800', '#2196F3', '#F44336']
-    }]
-  },
-  options: { 
-    plugins: { legend: { position: 'bottom' } } 
-  }
-});
+    type: 'doughnut',
+    data: { labels: labels.map(ch => 'Ch ' + ch), datasets: [{ data, backgroundColor: ['#4CAF50','#FF9800','#2196F3','#F44336','#9C27B0'] }] },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
 }
 
 function renderScoresTable(scores) {
   const table = document.getElementById('scoresTable');
-  if (!scores.length) { table.querySelector('tbody').innerHTML=''; return; }
-
-  // Create header dynamically
-  const headers = ['Name','Date','Score','Questions','Correct Count','Incorrect Count','Skipped Count','Overall Time'];
-  table.querySelector('thead tr').innerHTML = headers.map(h=>`<th>${h}</th>`).join('');
-  table.querySelector('tbody').innerHTML = scores.slice(-10).reverse().map(s=>
-    `<tr>${headers.map((_,i)=>`<td>${s[i]!==undefined?s[i]:''}</td>`).join('')}</tr>`).join('');
+  if (!scores.length) return table.querySelector('tbody').innerHTML = '';
+  const headers = ['Timestamp','Name','Score','Questions','Correct','Incorrect','Skipped','Overall Time (min)','Chapters'];
+  table.querySelector('thead tr').innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+  table.querySelector('tbody').innerHTML = scores.slice(-10).reverse().map(s =>
+    `<tr>${headers.map(h => `<td>${s[h] || ''}</td>`).join('')}</tr>`).join('');
 }
 
 function renderLogsTable(logs) {
   const table = document.getElementById('logsTable');
-  if (!logs.length) { table.querySelector('tbody').innerHTML=''; return; }
-
-  const headers = ['Name','Ref','Correct','ResponseTime','TimeToViewAnswer','Difficulty','Skipped'];
-  table.querySelector('thead tr').innerHTML = headers.map(h=>`<th>${h}</th>`).join('');
-  table.querySelector('tbody').innerHTML = logs.map(l=>
-    `<tr>
-      <td>${l[0]||''}</td>
-      <td>${l[2]||''}</td>
-      <td>${l[3]? 'Yes':'No'}</td>
-      <td>${l[5]||0}s</td>
-      <td>${l[4]||0}s</td>
-      <td>${l[6]||''}</td>
-      <td>${l[8]? 'Yes':'No'}</td>
-    </tr>`).join('');
+  if (!logs.length) return table.querySelector('tbody').innerHTML = '';
+  const headers = ['Name','Ref','Correct','ResponseTime','TimeToViewAnswer','DifficultyFeedback','ClickPattern','IsSkipped'];
+  table.querySelector('thead tr').innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+  table.querySelector('tbody').innerHTML = logs.slice(-10).reverse().map(l =>
+    `<tr>${headers.map(h => `<td>${l[h] !== undefined ? l[h] : ''}</td>`).join('')}</tr>`).join('');
 }
 
 loadData();
