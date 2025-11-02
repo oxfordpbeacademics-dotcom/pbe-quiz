@@ -128,15 +128,81 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzece46ltf8T5A_PIgbTZmk
 let allScores = [], allLogs = [];
 let scoreChart, timeChart, chapterChart;
 
+// sanitize numeric values robustly
+function toNumber(v) {
+  if (v === null || v === undefined) return 0;
+  // If it's already a number, return it
+  if (typeof v === 'number' && isFinite(v)) return v;
+  // Remove anything that's not digit, dot, minus
+  const s = String(v).trim();
+  // handle empty
+  if (s === '') return 0;
+  // Try parseFloat after removing commas/currency
+  const cleaned = s.replace(/,/g, '').replace(/[^\d.\-]/g, '');
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+}
+
+function parseTimestamp(ts) {
+  if (!ts) return 0;
+  const d = Date.parse(ts);
+  if (!isNaN(d)) return d;
+  // Try numeric strings (Excel may return epoch or serial) — fallback parseFloat
+  const n = parseFloat(String(ts).replace(/,/g,''));
+  // if it's a plausible epoch in seconds (10-digit) convert to ms
+  if (!isNaN(n)) {
+    if (n < 1e11) return Math.round(n * 1000);
+    return Math.round(n);
+  }
+  return 0;
+}
+
 async function loadData() {
   try {
     const resp = await fetch(API_URL);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     allScores = data.scores || [];
     allLogs = data.logs || [];
+
+    // ensure field keys are consistent: if the backend returned arrays instead of objects
+    // we try to map to object form if needed (but preferred is object rows).
+    if (allScores.length > 0 && !allScores[0].hasOwnProperty('Name') && Array.isArray(allScores[0])) {
+      // assume known column order: Timestamp, Name, Score, Questions, Correct, Incorrect, Skipped, Overall Time (min), Chapters
+      allScores = allScores.map(row => ({
+        Timestamp: row[0],
+        Name: row[1],
+        Score: row[2],
+        Questions: row[3],
+        Correct: row[4],
+        Incorrect: row[5],
+        Skipped: row[6],
+        "Overall Time (min)": row[7],
+        Chapters: row[8]
+      }));
+    }
+
+    // Same for logs: map array rows to objects if necessary
+    if (allLogs.length > 0 && !allLogs[0].hasOwnProperty('Name') && Array.isArray(allLogs[0])) {
+      // guess mapping used in your new script's Detailed Logs: Timestamp, Name, Ref, Correct, Selection, TimeToViewAnswer, ResponseTime, DifficultyFeedback, ClickPattern, ProgressIdx, IsSkipped
+      allLogs = allLogs.map(r => ({
+        Timestamp: r[0],
+        Name: r[1],
+        Ref: r[2],
+        Correct: r[3],
+        Selection: r[4],
+        TimeToViewAnswer: r[5],
+        ResponseTime: r[6],
+        DifficultyFeedback: r[7],
+        ClickPattern: r[8],
+        ProgressIdx: r[9],
+        IsSkipped: r[10]
+      }));
+    }
+
     renderDashboard(allScores, allLogs);
   } catch (err) {
-    document.getElementById('loading').textContent = "⚠️ Failed to load data. Check API.";
+    document.getElementById('loading').innerHTML = `<div class="error">Error loading data: ${err.message}</div>`;
     console.error(err);
   }
 }
@@ -145,107 +211,152 @@ function renderDashboard(scores, logs) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 
-  const names = [...new Set(scores.map(s => s.Name))].sort();
-  const sel = document.getElementById('childFilter');
-  sel.innerHTML = '<option value="">All Participants</option>';
-  names.forEach(n => sel.innerHTML += `<option value="${n}">${n}</option>`);
+  // Sort scores by timestamp ascending (old → new). This makes ordering predictable.
+  const scoresSorted = [...scores].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp));
 
-  const totalQuizzes = scores.length;
-  const avgScore = totalQuizzes ? Math.round(scores.reduce((a, s) => a + (s.Score || 0), 0) / totalQuizzes) : 0;
-  const avgTime = totalQuizzes ? Math.round(scores.reduce((a, s) => a + (s["Overall Time (min)"] || 0), 0) / totalQuizzes) : 0;
-  const correctRate = totalQuizzes ? Math.round(scores.reduce((a, s) => a + (s.Correct || 0), 0) / scores.reduce((a, s) => a + (s.Questions || 1), 0) * 100) : 0;
+  // Populate Name Filter (unique names from sorted list)
+  const names = [...new Set(scoresSorted.map(s => s.Name || ''))].filter(n=>n).sort();
+  const filterSel = document.getElementById('childFilter');
+  filterSel.innerHTML = '<option value="">All Participants</option>';
+  names.forEach(n => filterSel.innerHTML += `<option value="${n}">${n}</option>`);
+
+  // Stats (use numeric conversion)
+  const totalQuizzes = scoresSorted.length;
+  const totalScore = scoresSorted.reduce((acc, s) => acc + toNumber(s.Score), 0);
+  const avgScore = totalQuizzes ? Math.round(totalScore / totalQuizzes) : 0;
+
+  // Overall Time (minutes) — ensure we treat field as minutes not timestamp
+  // Backend writes "Overall Time (min)" — sanitize it, sum as minutes
+  const totalOverallMin = scoresSorted.reduce((acc, s) => acc + toNumber(s["Overall Time (min)"] || s["Overall Time"] || s.overallTime), 0);
+  const avgTime = totalQuizzes ? Math.round(totalOverallMin / totalQuizzes) : 0;
+
+  // Correct rate = sum(correct) / sum(questions) * 100
+  const totalCorrect = scoresSorted.reduce((acc, s) => acc + toNumber(s.Correct), 0);
+  const totalQuestions = scoresSorted.reduce((acc, s) => acc + toNumber(s.Questions) || 0, 0);
+  const correctRate = (totalQuestions > 0) ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
   document.getElementById('totalQuizzes').textContent = totalQuizzes;
   document.getElementById('avgScore').textContent = avgScore;
   document.getElementById('avgTime').textContent = avgTime;
   document.getElementById('correctRate').textContent = correctRate;
 
-  renderScoreChart(scores);
+  // Render visualizations using the sorted array. For "recent" displays we will show newest-first where appropriate.
+  renderScoreChart(scoresSorted);
   renderTimeChart(logs);
   renderChapterChart(logs);
-  renderScoresTable(scores);
-  renderLogsTable(logs.slice(-10));
+  renderScoresTable(scoresSorted);
+  renderLogsTable(logs);
 }
 
 function filterData() {
   const name = document.getElementById('childFilter').value;
-  const fScores = name ? allScores.filter(s => s.Name === name) : allScores;
-  const fLogs = name ? allLogs.filter(l => l.Name === name) : allLogs;
-  renderScoresTable(fScores);
-  renderLogsTable(fLogs.slice(-10));
-  renderScoreChart(fScores);
-  renderTimeChart(fLogs);
-  renderChapterChart(fLogs);
+  const fScores = name ? allScores.filter(s => (s.Name||'') === name) : allScores;
+  const fLogs = name ? allLogs.filter(l => (l.Name||'') === name) : allLogs;
+  renderDashboard(fScores, fLogs);
 }
 
 function renderScoreChart(scores) {
+  // We want charts to align with the table captions: show newest first in the visual
+  // Approach: sort ascending, then take last N if needed, and reverse to show newest left-to-right.
+  const sorted = [...scores].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp));
+  const last = sorted.slice(-30); // show up to 30
+  const labels = last.map(s => `${s.Name || ''} ${s.Timestamp ? '(' + s.Timestamp + ')' : ''}`);
+  const data = last.map(s => toNumber(s.Score));
+  // If table shows newest first, but you prefer chart left->right newest->oldest, reverse both arrays
+  // Here we want chart to match table (newest first on left). If you want oldest first, remove reverse.
+  labels.reverse();
+  data.reverse();
+
   const ctx = document.getElementById('scoreChart').getContext('2d');
   if (scoreChart) scoreChart.destroy();
   scoreChart = new Chart(ctx, {
     type: 'bar',
-    data: {
-      labels: scores.map(s => `${s.Name} (${s.Timestamp || ''})`),
-      datasets: [{ label: 'Score %', data: scores.map(s => s.Score || 0), backgroundColor: '#4CAF50' }]
-    },
+    data: { labels, datasets: [{ label: 'Score %', data, backgroundColor: '#4CAF50' }] },
     options: { scales: { y: { beginAtZero: true, max: 100 } } }
   });
 }
 
 function renderTimeChart(logs) {
+  // Use logs sorted by Timestamp or ProgressIdx where available.
+  const sorted = [...logs].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp));
+  const last = sorted.slice(-100); // some window
+  let labels = last.map((l,i) => `Q${i+1}`);
+  let respTimes = last.map(l => toNumber(l.ResponseTime || l.responseTime));
+  let viewTimes = last.map(l => toNumber(l.TimeToViewAnswer || l.timeToViewAnswer));
+
+  // Reverse so newest is left-to-right (matching scores logic)
+  labels.reverse(); respTimes.reverse(); viewTimes.reverse();
+
   const ctx = document.getElementById('timeChart').getContext('2d');
   if (timeChart) timeChart.destroy();
   timeChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: logs.map((_, i) => `Q${i + 1}`),
+      labels,
       datasets: [
-        { label: 'Response Time (s)', data: logs.map(l => l.ResponseTime || 0), borderColor: '#FF9800' },
-        { label: 'Time to View Answer (s)', data: logs.map(l => l.TimeToViewAnswer || 0), borderColor: '#2196F3' }
+        { label: 'Response Time (s)', data: respTimes, borderColor: '#FF9800', fill: false },
+        { label: 'Time to View Answer (s)', data: viewTimes, borderColor: '#2196F3', fill: false }
       ]
     },
-    options: { scales: { y: { beginAtZero: true } } }
+    options: { elements: { line: { tension: 0.3 } }, scales: { y: { beginAtZero: true } } }
   });
 }
 
 function renderChapterChart(logs) {
-  const ctx = document.getElementById('chapterChart').getContext('2d');
-  if (chapterChart) chapterChart.destroy();
   const chapters = {};
   logs.forEach(l => {
-    const ref = l.Ref || "";
-    const ch = ref.split(" ")[1]?.split(":")[0] || "Unknown";
+    const ref = l.Ref || l.ref || '';
+    // parse chapter from "Book Chapter:Verse" or "Book Chapter:Verse - ..." heuristics
+    const tokens = String(ref).split(' ');
+    let ch = 'Unknown';
+    if (tokens.length >= 2) {
+      const chapterPart = tokens[1].split(':')[0];
+      if (chapterPart) ch = chapterPart;
+    }
     if (!chapters[ch]) chapters[ch] = { correct: 0, total: 0 };
-    chapters[ch].correct += l.Correct ? 1 : 0;
+    chapters[ch].correct += (l.Correct ? 1 : 0);
     chapters[ch].total += 1;
   });
+
   const labels = Object.keys(chapters);
-  const data = labels.map(ch => Math.round(chapters[ch].correct / chapters[ch].total * 100));
+  const data = labels.map(k => Math.round(chapters[k].correct / chapters[k].total * 100) || 0);
+
+  const ctx = document.getElementById('chapterChart').getContext('2d');
+  if (chapterChart) chapterChart.destroy();
   chapterChart = new Chart(ctx, {
     type: 'doughnut',
-    data: { labels: labels.map(ch => 'Ch ' + ch), datasets: [{ data, backgroundColor: ['#4CAF50','#FF9800','#2196F3','#F44336','#9C27B0'] }] },
+    data: { labels: labels.map(l => 'Ch ' + l), datasets: [{ data, backgroundColor: ['#4CAF50','#FF9800','#2196F3','#F44336','#9C27B0'] }] },
     options: { plugins: { legend: { position: 'bottom' } } }
   });
 }
 
 function renderScoresTable(scores) {
   const table = document.getElementById('scoresTable');
-  if (!scores.length) return table.querySelector('tbody').innerHTML = '';
+  if (!scores.length) { table.querySelector('tbody').innerHTML = ''; return; }
+
   const headers = ['Timestamp','Name','Score','Questions','Correct','Incorrect','Skipped','Overall Time (min)','Chapters'];
-  table.querySelector('thead tr').innerHTML = headers.map(h => `<th>${h}</th>`).join('');
-  table.querySelector('tbody').innerHTML = scores.slice(-10).reverse().map(s =>
-    `<tr>${headers.map(h => `<td>${s[h] || ''}</td>`).join('')}</tr>`).join('');
+  table.querySelector('thead tr').innerHTML = headers.map(h=>`<th>${h}</th>`).join('');
+
+  // Show recent 10 rows newest-first
+  const rows = [...scores].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp)).slice(-10).reverse();
+  table.querySelector('tbody').innerHTML = rows.map(s =>
+    `<tr>${headers.map(h => `<td>${(s[h] !== undefined && s[h] !== null) ? s[h] : ''}</td>`).join('')}</tr>`).join('');
 }
 
 function renderLogsTable(logs) {
   const table = document.getElementById('logsTable');
-  if (!logs.length) return table.querySelector('tbody').innerHTML = '';
+  if (!logs.length) { table.querySelector('tbody').innerHTML = ''; return; }
+
   const headers = ['Name','Ref','Correct','ResponseTime','TimeToViewAnswer','DifficultyFeedback','ClickPattern','IsSkipped'];
-  table.querySelector('thead tr').innerHTML = headers.map(h => `<th>${h}</th>`).join('');
-  table.querySelector('tbody').innerHTML = logs.slice(-10).reverse().map(l =>
-    `<tr>${headers.map(h => `<td>${l[h] !== undefined ? l[h] : ''}</td>`).join('')}</tr>`).join('');
+  table.querySelector('thead tr').innerHTML = headers.map(h=>`<th>${h}</th>`).join('');
+
+  const rows = [...logs].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp)).slice(-10).reverse();
+  table.querySelector('tbody').innerHTML = rows.map(l =>
+    `<tr>${headers.map(h => `<td>${(l[h] !== undefined && l[h] !== null) ? l[h] : ''}</td>`).join('')}</tr>`).join('');
 }
 
 loadData();
 </script>
+
 </body>
 </html>
