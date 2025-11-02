@@ -3,159 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>✝️ Oxford Academics PBE Analytics Dashboard</title>
+<title>PBE Quiz Analytics Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  :root {
-    --primary: #4CAF50;
-    --light: #f9f9f9;
-    --dark: #333;
-  }
-  body {
-    font-family: 'Comic Sans MS', cursive, sans-serif;
-    background: linear-gradient(to bottom, #e0f7fa, #ffffff);
-    margin: 0; padding: 1.5rem; color: var(--dark);
-  }
-  h1 {
-    text-align: center;
-    color: var(--primary);
-  }
-  .container {
-    max-width: 1200px;
-    margin: auto;
-    background: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
-  select {
-    padding: 0.6rem;
-    font-size: 1rem;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    margin-bottom: 1rem;
-  }
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0;
-  }
-  .stat-card {
-    background: #e8f5e9;
-    border-radius: 10px;
-    padding: 1rem;
-    text-align: center;
-  }
-  .stat-number {
-    font-size: 2em;
-    font-weight: bold;
-    color: var(--primary);
-  }
-  .chart-container {
-    margin: 1.5rem 0;
-    height: 400px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1rem 0;
-    font-size: 0.95rem;
-  }
-  th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-  th {
-    background: var(--primary);
-    color: white;
-  }
-  .footer-credit {
-    text-align: right;
-    color: #555;
-    font-size: 0.8rem;
-    margin-top: 2rem;
-  }
+  body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+  .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+  h1 { text-align: center; color: #4CAF50; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+  .stat-card { background: #e8f5e9; padding: 15px; border-radius: 8px; text-align: center; }
+  .stat-number { font-size: 2em; font-weight: bold; color: #4CAF50; }
+  .chart-container { margin: 20px 0; height: 400px; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { background: #4CAF50; color: white; }
+  select { padding: 5px; margin-bottom: 10px; }
+  .error { color: red; text-align: center; }
 </style>
 </head>
 <body>
-  <h1>✝️ Oxford Academics PBE Analytics Dashboard</h1>
-  <div class="container">
-    <div id="loading">Loading data...</div>
+<div class="container">
+  <h1>✝️ PBE Quiz Analytics Dashboard</h1>
+  <div id="loading">Loading data...</div>
 
-    <div id="dashboard" style="display:none;">
-      <label><strong>Filter by Name:</strong></label><br>
-      <select id="childFilter" onchange="filterData()">
-        <option value="">All Participants</option>
-      </select>
+  <div id="dashboard" style="display:none;">
+    <label>Filter by Name: </label>
+    <select id="childFilter" onchange="filterData()">
+      <option value="">All Children</option>
+    </select>
 
-      <div class="stats-grid">
-        <div class="stat-card">Total Quizzes<div id="totalQuizzes" class="stat-number"></div></div>
-        <div class="stat-card">Average Score<div id="avgScore" class="stat-number"></div>%</div>
-        <div class="stat-card">Average Time<div id="avgTime" class="stat-number"></div> min</div>
-        <div class="stat-card">Correct Rate<div id="correctRate" class="stat-number"></div>%</div>
-      </div>
-
-      <div class="chart-container">
-        <canvas id="scoreChart"></canvas>
-      </div>
-      <div class="chart-container">
-        <canvas id="timeChart"></canvas>
-      </div>
-      <div class="chart-container">
-        <canvas id="chapterChart"></canvas>
-      </div>
-
-      <h2>Recent Scores</h2>
-      <table id="scoresTable">
-        <thead><tr></tr></thead>
-        <tbody></tbody>
-      </table>
-
-      <h2>Recent Question Logs</h2>
-      <table id="logsTable">
-        <thead><tr></tr></thead>
-        <tbody></tbody>
-      </table>
+    <div class="stats-grid">
+      <div class="stat-card">Total Quizzes <div id="totalQuizzes" class="stat-number"></div></div>
+      <div class="stat-card">Average Score <div id="avgScore" class="stat-number"></div>%</div>
+      <div class="stat-card">Average Time <div id="avgTime" class="stat-number"></div> min</div>
+      <div class="stat-card">Correct Rate <div id="correctRate" class="stat-number"></div>%</div>
     </div>
 
-    <div class="footer-credit">Developed by Oxford SDA Church</div>
+    <div class="chart-container">
+      <canvas id="scoreChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="timeChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="chapterChart"></canvas>
+    </div>
+
+    <h2>Recent Scores</h2>
+    <table id="scoresTable">
+      <thead><tr></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Recent Question Logs</h2>
+    <table id="logsTable">
+      <thead><tr></tr></thead>
+      <tbody></tbody>
+    </table>
   </div>
+</div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbzece46ltf8T5A_PIgbTZmkEUGF9F-ubkNfTu4L7DY22kFy6BFuUJX5p9MKxP1TJKO5sg/exec?action=dashboard";
+
 let allScores = [], allLogs = [];
-let scoreChart, timeChart, chapterChart;
-
-// sanitize numeric values robustly
-function toNumber(v) {
-  if (v === null || v === undefined) return 0;
-  // If it's already a number, return it
-  if (typeof v === 'number' && isFinite(v)) return v;
-  // Remove anything that's not digit, dot, minus
-  const s = String(v).trim();
-  // handle empty
-  if (s === '') return 0;
-  // Try parseFloat after removing commas/currency
-  const cleaned = s.replace(/,/g, '').replace(/[^\d.\-]/g, '');
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? 0 : n;
-}
-
-function parseTimestamp(ts) {
-  if (!ts) return 0;
-  const d = Date.parse(ts);
-  if (!isNaN(d)) return d;
-  // Try numeric strings (Excel may return epoch or serial) — fallback parseFloat
-  const n = parseFloat(String(ts).replace(/,/g,''));
-  // if it's a plausible epoch in seconds (10-digit) convert to ms
-  if (!isNaN(n)) {
-    if (n < 1e11) return Math.round(n * 1000);
-    return Math.round(n);
-  }
-  return 0;
-}
+let scoresChart, timeChart, chapterChart;
 
 async function loadData() {
   try {
@@ -164,42 +75,6 @@ async function loadData() {
     const data = await resp.json();
     allScores = data.scores || [];
     allLogs = data.logs || [];
-
-    // ensure field keys are consistent: if the backend returned arrays instead of objects
-    // we try to map to object form if needed (but preferred is object rows).
-    if (allScores.length > 0 && !allScores[0].hasOwnProperty('Name') && Array.isArray(allScores[0])) {
-      // assume known column order: Timestamp, Name, Score, Questions, Correct, Incorrect, Skipped, Overall Time (min), Chapters
-      allScores = allScores.map(row => ({
-        Timestamp: row[0],
-        Name: row[1],
-        Score: row[2],
-        Questions: row[3],
-        Correct: row[4],
-        Incorrect: row[5],
-        Skipped: row[6],
-        "Overall Time (min)": row[7],
-        Chapters: row[8]
-      }));
-    }
-
-    // Same for logs: map array rows to objects if necessary
-    if (allLogs.length > 0 && !allLogs[0].hasOwnProperty('Name') && Array.isArray(allLogs[0])) {
-      // guess mapping used in your new script's Detailed Logs: Timestamp, Name, Ref, Correct, Selection, TimeToViewAnswer, ResponseTime, DifficultyFeedback, ClickPattern, ProgressIdx, IsSkipped
-      allLogs = allLogs.map(r => ({
-        Timestamp: r[0],
-        Name: r[1],
-        Ref: r[2],
-        Correct: r[3],
-        Selection: r[4],
-        TimeToViewAnswer: r[5],
-        ResponseTime: r[6],
-        DifficultyFeedback: r[7],
-        ClickPattern: r[8],
-        ProgressIdx: r[9],
-        IsSkipped: r[10]
-      }));
-    }
-
     renderDashboard(allScores, allLogs);
   } catch (err) {
     document.getElementById('loading').innerHTML = `<div class="error">Error loading data: ${err.message}</div>`;
@@ -211,152 +86,132 @@ function renderDashboard(scores, logs) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
 
-  // Sort scores by timestamp ascending (old → new). This makes ordering predictable.
-  const scoresSorted = [...scores].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp));
-
-  // Populate Name Filter (unique names from sorted list)
-  const names = [...new Set(scoresSorted.map(s => s.Name || ''))].filter(n=>n).sort();
+  // Populate Name Filter
+  const names = [...new Set(allScores.map(s => s[0]))].sort();
   const filterSel = document.getElementById('childFilter');
-  filterSel.innerHTML = '<option value="">All Participants</option>';
+  filterSel.innerHTML = '<option value="">All Children</option>';
   names.forEach(n => filterSel.innerHTML += `<option value="${n}">${n}</option>`);
 
-  // Stats (use numeric conversion)
-  const totalQuizzes = scoresSorted.length;
-  const totalScore = scoresSorted.reduce((acc, s) => acc + toNumber(s.Score), 0);
-  const avgScore = totalQuizzes ? Math.round(totalScore / totalQuizzes) : 0;
-
-  // Overall Time (minutes) — ensure we treat field as minutes not timestamp
-  // Backend writes "Overall Time (min)" — sanitize it, sum as minutes
-  const totalOverallMin = scoresSorted.reduce((acc, s) => acc + toNumber(s["Overall Time (min)"] || s["Overall Time"] || s.overallTime), 0);
-  const avgTime = totalQuizzes ? Math.round(totalOverallMin / totalQuizzes) : 0;
-
-  // Correct rate = sum(correct) / sum(questions) * 100
-  const totalCorrect = scoresSorted.reduce((acc, s) => acc + toNumber(s.Correct), 0);
-  const totalQuestions = scoresSorted.reduce((acc, s) => acc + toNumber(s.Questions) || 0, 0);
-  const correctRate = (totalQuestions > 0) ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+  // Stats (with numeric conversion)
+  const totalQuizzes = scores.length;
+  const avgScore = scores.length
+    ? Math.round(scores.reduce((a, s) => a + Number(s[2] || 0), 0) / scores.length)
+    : 0;
+  const avgTime = scores.length
+    ? Math.round(scores.reduce((a, s) => a + Number(s[7] || 0), 0) / scores.length)
+    : 0;
+  const totalCorrect = scores.reduce((a, s) => a + Number(s[4] || 0), 0);
+  const totalQuestions = scores.reduce((a, s) => a + Number(s[3] || 0), 0);
+  const correctRate = totalQuestions ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
   document.getElementById('totalQuizzes').textContent = totalQuizzes;
   document.getElementById('avgScore').textContent = avgScore;
   document.getElementById('avgTime').textContent = avgTime;
   document.getElementById('correctRate').textContent = correctRate;
 
-  // Render visualizations using the sorted array. For "recent" displays we will show newest-first where appropriate.
-  renderScoreChart(scoresSorted);
+  renderScoreChart(scores);
   renderTimeChart(logs);
   renderChapterChart(logs);
-  renderScoresTable(scoresSorted);
-  renderLogsTable(logs);
+  renderScoresTable(scores);
+  renderLogsTable(logs.slice(-10));
 }
 
 function filterData() {
   const name = document.getElementById('childFilter').value;
-  const fScores = name ? allScores.filter(s => (s.Name||'') === name) : allScores;
-  const fLogs = name ? allLogs.filter(l => (l.Name||'') === name) : allLogs;
-  renderDashboard(fScores, fLogs);
+  const filteredScores = name ? allScores.filter(s => s[0] === name) : allScores;
+  const filteredLogs = name ? allLogs.filter(l => l[0] === name) : allLogs;
+  renderDashboard(filteredScores, filteredLogs);
 }
 
 function renderScoreChart(scores) {
-  // We want charts to align with the table captions: show newest first in the visual
-  // Approach: sort ascending, then take last N if needed, and reverse to show newest left-to-right.
-  const sorted = [...scores].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp));
-  const last = sorted.slice(-30); // show up to 30
-  const labels = last.map(s => `${s.Name || ''} ${s.Timestamp ? '(' + s.Timestamp + ')' : ''}`);
-  const data = last.map(s => toNumber(s.Score));
-  // If table shows newest first, but you prefer chart left->right newest->oldest, reverse both arrays
-  // Here we want chart to match table (newest first on left). If you want oldest first, remove reverse.
-  labels.reverse();
-  data.reverse();
-
   const ctx = document.getElementById('scoreChart').getContext('2d');
-  if (scoreChart) scoreChart.destroy();
-  scoreChart = new Chart(ctx, {
+  if (scoresChart) scoresChart.destroy();
+
+  const recent = scores.slice(-10).reverse();
+  scoresChart = new Chart(ctx, {
     type: 'bar',
-    data: { labels, datasets: [{ label: 'Score %', data, backgroundColor: '#4CAF50' }] },
-    options: { scales: { y: { beginAtZero: true, max: 100 } } }
+    data: {
+      labels: recent.map(s => `${s[1]} (${s[0]})`), // Date (Name)
+      datasets: [{ label: 'Score %', data: recent.map(s => Number(s[2] || 0)), backgroundColor:'#4CAF50' }]
+    },
+    options: { scales:{y:{beginAtZero:true,max:100}} }
   });
 }
 
 function renderTimeChart(logs) {
-  // Use logs sorted by Timestamp or ProgressIdx where available.
-  const sorted = [...logs].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp));
-  const last = sorted.slice(-100); // some window
-  let labels = last.map((l,i) => `Q${i+1}`);
-  let respTimes = last.map(l => toNumber(l.ResponseTime || l.responseTime));
-  let viewTimes = last.map(l => toNumber(l.TimeToViewAnswer || l.timeToViewAnswer));
-
-  // Reverse so newest is left-to-right (matching scores logic)
-  labels.reverse(); respTimes.reverse(); viewTimes.reverse();
-
   const ctx = document.getElementById('timeChart').getContext('2d');
   if (timeChart) timeChart.destroy();
+  const respTimes = logs.map(l=>Number(l[5]||0));
+  const viewTimes = logs.map(l=>Number(l[4]||0));
   timeChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels,
-      datasets: [
-        { label: 'Response Time (s)', data: respTimes, borderColor: '#FF9800', fill: false },
-        { label: 'Time to View Answer (s)', data: viewTimes, borderColor: '#2196F3', fill: false }
+      labels: logs.map((_,i)=>`Q${i+1}`),
+      datasets:[
+        {label:'Response Time (s)', data:respTimes, borderColor:'#FF9800'},
+        {label:'View Answer Time (s)', data:viewTimes, borderColor:'#2196F3'}
       ]
     },
-    options: { elements: { line: { tension: 0.3 } }, scales: { y: { beginAtZero: true } } }
+    options:{scales:{y:{beginAtZero:true}}}
   });
 }
 
 function renderChapterChart(logs) {
-  const chapters = {};
-  logs.forEach(l => {
-    const ref = l.Ref || l.ref || '';
-    // parse chapter from "Book Chapter:Verse" or "Book Chapter:Verse - ..." heuristics
-    const tokens = String(ref).split(' ');
-    let ch = 'Unknown';
-    if (tokens.length >= 2) {
-      const chapterPart = tokens[1].split(':')[0];
-      if (chapterPart) ch = chapterPart;
-    }
-    if (!chapters[ch]) chapters[ch] = { correct: 0, total: 0 };
-    chapters[ch].correct += (l.Correct ? 1 : 0);
-    chapters[ch].total += 1;
-  });
-
-  const labels = Object.keys(chapters);
-  const data = labels.map(k => Math.round(chapters[k].correct / chapters[k].total * 100) || 0);
-
   const ctx = document.getElementById('chapterChart').getContext('2d');
   if (chapterChart) chapterChart.destroy();
+  const chapterMap = {};
+  logs.forEach(l=>{
+    const ch = l[2]?.split(' ')[1]?.split(':')[0] || 'Unknown';
+    if (!chapterMap[ch]) chapterMap[ch]={correct:0,total:0};
+    chapterMap[ch].correct += l[3]?1:0;
+    chapterMap[ch].total += 1;
+  });
+  const labels = Object.keys(chapterMap);
+  const data = labels.map(ch=>Math.round(chapterMap[ch].correct/chapterMap[ch].total*100));
   chapterChart = new Chart(ctx, {
     type: 'doughnut',
-    data: { labels: labels.map(l => 'Ch ' + l), datasets: [{ data, backgroundColor: ['#4CAF50','#FF9800','#2196F3','#F44336','#9C27B0'] }] },
-    options: { plugins: { legend: { position: 'bottom' } } }
+    data: { 
+      labels: labels.map(ch => 'Ch ' + ch),
+      datasets: [{
+        data: data,
+        backgroundColor: ['#4CAF50', '#FF9800', '#2196F3', '#F44336', '#9C27B0', '#00BCD4']
+      }]
+    },
+    options: { 
+      plugins: { legend: { position: 'bottom' } } 
+    }
   });
 }
 
 function renderScoresTable(scores) {
   const table = document.getElementById('scoresTable');
-  if (!scores.length) { table.querySelector('tbody').innerHTML = ''; return; }
+  if (!scores.length) { table.querySelector('tbody').innerHTML=''; return; }
 
-  const headers = ['Timestamp','Name','Score','Questions','Correct','Incorrect','Skipped','Overall Time (min)','Chapters'];
+  const headers = ['Name','Date','Score','Questions','Correct Count','Incorrect Count','Skipped Count','Overall Time'];
   table.querySelector('thead tr').innerHTML = headers.map(h=>`<th>${h}</th>`).join('');
-
-  // Show recent 10 rows newest-first
-  const rows = [...scores].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp)).slice(-10).reverse();
-  table.querySelector('tbody').innerHTML = rows.map(s =>
-    `<tr>${headers.map(h => `<td>${(s[h] !== undefined && s[h] !== null) ? s[h] : ''}</td>`).join('')}</tr>`).join('');
+  table.querySelector('tbody').innerHTML = scores.slice(-10).reverse().map(s=>
+    `<tr>${headers.map((_,i)=>`<td>${s[i]!==undefined?s[i]:''}</td>`).join('')}</tr>`).join('');
 }
 
 function renderLogsTable(logs) {
   const table = document.getElementById('logsTable');
-  if (!logs.length) { table.querySelector('tbody').innerHTML = ''; return; }
+  if (!logs.length) { table.querySelector('tbody').innerHTML=''; return; }
 
-  const headers = ['Name','Ref','Correct','ResponseTime','TimeToViewAnswer','DifficultyFeedback','ClickPattern','IsSkipped'];
+  const headers = ['Name','Ref','Correct','ResponseTime','TimeToViewAnswer','Difficulty','Skipped'];
   table.querySelector('thead tr').innerHTML = headers.map(h=>`<th>${h}</th>`).join('');
-
-  const rows = [...logs].sort((a,b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp)).slice(-10).reverse();
-  table.querySelector('tbody').innerHTML = rows.map(l =>
-    `<tr>${headers.map(h => `<td>${(l[h] !== undefined && l[h] !== null) ? l[h] : ''}</td>`).join('')}</tr>`).join('');
+  table.querySelector('tbody').innerHTML = logs.map(l=>
+    `<tr>
+      <td>${l[0]||''}</td>
+      <td>${l[2]||''}</td>
+      <td>${l[3]? 'Yes':'No'}</td>
+      <td>${l[5]||0}s</td>
+      <td>${l[4]||0}s</td>
+      <td>${l[6]||''}</td>
+      <td>${l[8]? 'Yes':'No'}</td>
+    </tr>`).join('');
 }
 
 loadData();
 </script>
-
 </body>
 </html>
