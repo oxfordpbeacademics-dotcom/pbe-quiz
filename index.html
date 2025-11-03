@@ -39,6 +39,7 @@
     .hidden { display: none; }
     .got-it { background: #4CAF50; }
     .incorrect { background: #f44336; }
+    .partial-btn { background: #ff9800; color: white; }
     .test-complete { 
       font-size: 1.6rem; 
       color: var(--primary); 
@@ -179,7 +180,7 @@
   <!-- ==== ISAIAH SUMMARY WIZARD ==== -->
   <div id="isaiah-summary" class="card hidden">
     <div id="name-prompt-summary" class="name-prompt hidden">
-      <p><strong>Hi there! To start the Isaiah adventure, please select your name below:</strong></p>
+      <p><strong>Hi there! To start the Isaiah summary, please select your name below:</strong></p>
       <select id="wizardUserNameSummary">
         <option value="">Select Name...</option>
         <option value="Coach">Coach</option>
@@ -262,8 +263,7 @@
       </div>
 
       <div id="wizard-finished-summary" class="wizard-finished hidden">
-        <h3>🎉 You finished the Isaiah Adventure! Great job exploring God's story! 🏆</h3>
-        <p>Now you're ready for the quiz—head back and test your knowledge!</p>
+        <h3>🎉 You finished the Isaiah Adventure! Great job! 🏆</h3>
         <button onclick="resetWizardSummary()">Read Again from Start 🔄</button>
       </div>
     </div>
@@ -275,7 +275,7 @@
   <!-- ==== ISAIAH COMMENTARY WIZARD ==== -->
   <div id="isaiah-commentary" class="card hidden">
     <div id="name-prompt-commentary" class="name-prompt hidden">
-      <p><strong>Hi there! To start the Isaiah Commentary, please select your name below:</strong></p>
+      <p><strong>Hi there! To start reading the Isaiah Commentary, please select your name below:</strong></p>
       <select id="wizardUserNameCommentary">
         <option value="">Select Name...</option>
         <option value="Coach">Coach</option>
@@ -328,8 +328,7 @@
       </div>
 
       <div id="wizard-finished-commentary" class="wizard-finished hidden">
-        <h3>🎉 You finished the Isaiah Commentary! Great job diving deeper into God's word! 🏆</h3>
-        <p>Now you're ready for the quiz—head back and test your knowledge!</p>
+        <h3>🎉 You finished the Isaiah Commentary! Great job! 🏆</h3>
         <button onclick="resetWizardCommentary()">Read Again from Start 🔄</button>
       </div>
     </div>
@@ -394,6 +393,10 @@
     <div class="options hidden" id="markOptions">
       <button class="got-it" onclick="markAnswer(true)">✅ I Got It!</button>
       <button class="incorrect" onclick="markAnswer(false)">❌ Incorrect</button>
+    </div>
+
+    <div class="options hidden" id="partialOptions">
+      <!-- Dynamic partial credit buttons will be inserted here -->
     </div>
 
     <div style="margin-top:1rem; text-align:center;">
@@ -891,6 +894,7 @@
       document.getElementById('skipBtn').classList.remove('hidden');
       document.getElementById('preAnswerOptions').classList.remove('hidden');
       document.getElementById('markOptions').classList.add('hidden');
+      document.getElementById('partialOptions').classList.add('hidden');
       document.getElementById('progress').textContent = `${currentIdx + 1} / ${quizQuestions.length}`;
 
       // Initialize current question data
@@ -928,7 +932,7 @@
     // User clicks Skip during timer
     function onSkip() {
       clearInterval(timerInterval);
-      // Reveal answer, mark incorrect, log, then advance automatically after short pause
+      // Reveal answer, treat as incorrect (0 for skip), log, then advance automatically after short pause
       revealAnswerImmediateIncorrect();
     }
 
@@ -950,6 +954,7 @@
       document.getElementById('answer').style.display = 'block';
       document.getElementById('preAnswerOptions').classList.add('hidden');
       document.getElementById('markOptions').classList.remove('hidden');
+      document.getElementById('partialOptions').classList.add('hidden');
       document.getElementById('timer').classList.add('hidden');
 
       // record time to view the answer
@@ -962,12 +967,13 @@
       document.getElementById('answer').style.display = 'block';
       document.getElementById('preAnswerOptions').classList.add('hidden');
       document.getElementById('markOptions').classList.add('hidden');
+      document.getElementById('partialOptions').classList.add('hidden');
       document.getElementById('timer').classList.add('hidden');
 
-      // mark as skipped/incorrect immediately
+      // mark as skipped/incorrect immediately (0 marks)
       const marks = parseInt(quizQuestions[currentIdx].MarkValue) || 1;
       possible += marks;
-      // earned unchanged (incorrect)
+      // earned unchanged (0 for skip)
       currentQuestionData.responseTime = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);
       currentQuestionData.timeToViewAnswer = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);
       currentQuestionData.correct = false;
@@ -983,29 +989,80 @@
       }, 1200); // 1.2s pause for visibility
     }
 
+    function showPartialOptions(marks) {
+      const container = document.getElementById('partialOptions');
+      container.innerHTML = ''; // Clear previous
+      for (let i = 0; i < marks; i++) { // 0 to marks-1
+        const btn = document.createElement('button');
+        btn.textContent = `${i} correct (out of ${marks})`;
+        btn.className = 'partial-btn';
+        btn.onclick = () => selectPartial(i, marks);
+        container.appendChild(btn);
+      }
+      document.getElementById('markOptions').classList.add('hidden');
+      container.classList.remove('hidden');
+    }
+
+    function selectPartial(k, marks) {
+      earned += k;
+      possible += marks;
+      currentQuestionData.partialCorrect = k;
+      currentQuestionData.responseTime = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);
+      currentQuestionData.correct = false;
+      currentQuestionData.selection = `partial-${k}`;
+      currentQuestionData.marked = true;
+      currentQuestionData.clickPattern = 'partial';
+
+      logQuestion(currentQuestionData);
+      document.getElementById('partialOptions').classList.add('hidden');
+
+      // auto-advance shortly
+      setTimeout(() => {
+        advanceQuestion();
+      }, 400);
+    }
+
     function markAnswer(correct) {
       if (currentQuestionData.marked) {
-        // guard against double-marking
-        return;
+        return; // guard against double-marking
       }
 
       const marks = parseInt(quizQuestions[currentIdx].MarkValue) || 1;
-      if (correct) earned += marks;
-      possible += marks;
-
       currentQuestionData.responseTime = Math.round((Date.now() - currentQuestionData.questionStartTime) / 1000);
-      currentQuestionData.correct = !!correct;
-      currentQuestionData.selection = correct ? 'correct' : 'incorrect';
-      currentQuestionData.marked = true;
-      currentQuestionData.clickPattern = 'markAnswer';
 
-      // Log and advance immediately
-      logQuestion(currentQuestionData);
+      if (correct) {
+        earned += marks;
+        possible += marks;
+        currentQuestionData.correct = true;
+        currentQuestionData.selection = 'correct';
+        currentQuestionData.marked = true;
+        currentQuestionData.clickPattern = 'markAnswer';
 
-      // auto-advance shortly to give visual confirmation
-      setTimeout(() => {
-        advanceQuestion();
-      }, 400); // short delay to let user see their action
+        logQuestion(currentQuestionData);
+
+        // auto-advance shortly to give visual confirmation
+        setTimeout(() => {
+          advanceQuestion();
+        }, 400);
+      } else {
+        // incorrect clicked
+        currentQuestionData.correct = false;
+        currentQuestionData.selection = 'incorrect';
+        currentQuestionData.clickPattern = 'markAnswer';
+
+        if (marks === 1) {
+          // normal single-mark: 0
+          possible += marks;
+          currentQuestionData.marked = true;
+          logQuestion(currentQuestionData);
+          setTimeout(() => {
+            advanceQuestion();
+          }, 400);
+        } else {
+          // multi-mark: show partial options (0 to marks-1)
+          showPartialOptions(marks);
+        }
+      }
     }
 
     function advanceQuestion() {
@@ -1070,11 +1127,13 @@
       const difficulty = qData.difficulty || 'Unknown';
       const clickPattern = qData.clickPattern || 'unknown';
       const progressIdx = currentIdx + 1;
+      const partialCorrect = qData.partialCorrect || null;
 
       const logEntry = {
         ref: qData.ref,
         correct: !!qData.correct,
         selection: qData.selection || (qData.correct ? 'correct' : 'incorrect'),
+        partialCorrect: partialCorrect,
         timeToViewAnswer: timeToView,
         responseTime: responseTime,
         difficultyFeedback: difficulty,
