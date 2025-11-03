@@ -137,6 +137,14 @@
       color: var(--primary);
       padding: 1rem;
     }
+    .name-prompt {
+      text-align: center;
+      padding: 1rem;
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
     @media (max-width: 480px) {
       .wizard-buttons {
         flex-direction: column;
@@ -153,8 +161,28 @@
 
   <!-- ==== ISAIAH SUMMARY WIZARD ==== -->
   <div id="isaiah-summary" class="card hidden">
-    <h2>Isaiah: A Super Cool Book from the Bible</h2>
-    <div class="isaiah-summary">
+    <div id="name-prompt" class="name-prompt hidden">
+      <p><strong>Hi there! To start the Isaiah adventure, please select your name below:</strong></p>
+      <select id="wizardUserName">
+        <option value="">Select Name...</option>
+        <option value="Coach">Coach</option>
+        <option value="Kudzie">Kudzie</option>
+        <option value="Wandie">Wandie</option>
+        <option value="Lily">Lily</option>
+        <option value="Abigail">Abigail</option>
+        <option value="Micheala">Micheala</option>
+        <option value="Dereal">Dereal</option>
+        <option value="Caleb">Caleb</option>
+        <option value="TJ">TJ</option>
+        <option value="Jaydon">Jaydon</option>
+        <option value="Sunshine">Sunshine</option>
+      </select>
+      <br><br>
+      <button onclick="startWizardAfterName()">Let's Begin! 🚀</button>
+    </div>
+
+    <h2 id="wizard-title" style="display: none;">Isaiah: A Super Cool Book from the Bible</h2>
+    <div class="isaiah-summary" id="wizard-content" style="display: none;">
       <!-- Step 0: Intro -->
       <div id="step-0" class="wizard-step active">
         <p>Hey there! Imagine the Bible is like a huge adventure story with 66 chapters (called "books"). The Book of Isaiah is like a tiny version of the whole Bible—it's got exactly 66 chapters too! It's written by a guy named Isaiah, who was like God's messenger (called a prophet) a super long time ago, about 700 years before Jesus was born. Isaiah's job was to tell people: "Hey, God loves you SO much, but listen up and follow Him!"</p>
@@ -342,6 +370,8 @@
 
     // Wizard variables
     let currentStep = 0;
+    let wizardUserName = ''; // Separate for wizard
+    let wizardStartTime = 0;
     const totalSteps = 10; // 0 intro + 8 chapters + 1 closing = 10
 
     // Navigation functions
@@ -351,7 +381,33 @@
       document.getElementById('quiz').classList.add('hidden');
       document.getElementById('summary').classList.add('hidden');
       document.getElementById('backToConfig').style.display = 'inline-block';
-      initWizard(); // Initialize or resume wizard
+
+      // Check if name is selected (from config or wizard)
+      const configName = document.getElementById('userName').value.trim();
+      if (configName) {
+        wizardUserName = configName;
+        initWizard();
+      } else {
+        // Show name prompt
+        document.getElementById('name-prompt').classList.remove('hidden');
+        document.getElementById('wizard-title').style.display = 'none';
+        document.getElementById('wizard-content').style.display = 'none';
+      }
+    }
+
+    function startWizardAfterName() {
+      wizardUserName = document.getElementById('wizardUserName').value.trim();
+      if (!wizardUserName) {
+        alert('Please select your name to begin the adventure!');
+        return;
+      }
+      // Sync back to config if needed
+      document.getElementById('userName').value = wizardUserName;
+      userName = wizardUserName;
+      document.getElementById('name-prompt').classList.add('hidden');
+      document.getElementById('wizard-title').style.display = 'block';
+      document.getElementById('wizard-content').style.display = 'block';
+      initWizard();
     }
 
     function showConfig() {
@@ -367,6 +423,15 @@
       // Load progress from localStorage
       const savedStep = localStorage.getItem('isaiahStep');
       currentStep = savedStep !== null ? parseInt(savedStep) : 0;
+
+      // Load or set start time
+      const savedStart = localStorage.getItem('isaiahStartTime');
+      if (savedStart) {
+        wizardStartTime = parseInt(savedStart);
+      } else {
+        wizardStartTime = Date.now();
+        localStorage.setItem('isaiahStartTime', wizardStartTime);
+      }
 
       if (currentStep >= totalSteps) {
         showFinished();
@@ -396,10 +461,6 @@
 
       // Save progress
       localStorage.setItem('isaiahStep', currentStep);
-
-      // Hide finished if not done
-      document.getElementById('wizard-finished').classList.add('hidden');
-      document.getElementById('wizard-buttons').classList.remove('hidden');
     }
 
     function nextStep() {
@@ -427,11 +488,45 @@
         document.getElementById(`step-${i}`).classList.remove('active');
       }
       document.getElementById('wizard-finished').classList.remove('hidden');
+
+      // Log completion
+      logSummaryCompletion();
+    }
+
+    async function logSummaryCompletion() {
+      const overallTimeSeconds = Math.round((Date.now() - wizardStartTime) / 1000);
+      const overallTimeMinutes = Math.round(overallTimeSeconds / 60);
+
+      const logData = new URLSearchParams({
+        action: 'logIsaiahSummary',
+        name: wizardUserName,
+        timeSeconds: overallTimeSeconds,
+        timeMinutes: overallTimeMinutes,
+        completed: true
+      });
+
+      console.log('Sending summary log:', logData.toString());
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: logData
+        });
+        if (response.ok) {
+          console.log('Summary completion logged successfully!');
+        } else {
+          console.error('Summary log failed:', response.status);
+        }
+      } catch (err) {
+        console.error('Summary log failed:', err);
+      }
     }
 
     function resetWizard() {
       currentStep = 0;
       localStorage.setItem('isaiahStep', currentStep);
+      // Reset start time for new read
+      wizardStartTime = Date.now();
+      localStorage.setItem('isaiahStartTime', wizardStartTime);
       document.getElementById('wizard-finished').classList.add('hidden');
       document.getElementById('wizard-buttons').classList.remove('hidden');
       document.getElementById('wizard-progress').classList.remove('hidden');
