@@ -29,7 +29,7 @@
       transition: 0.2s;
     }
     button:hover { background: #45a049; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
+    button:disabled { background: #ccc; cursor: not-allowed; opacity: 0.6; }
     .question { font-size: 1.3rem; margin: 1.5rem 0; }
     .reference { font-weight: bold; color: var(--primary); }
     .answer { margin: 1rem 0; padding: 1rem; background: #e8f5e9; border-radius: 8px; display: none; }
@@ -172,8 +172,8 @@
 <body>
   <h1>✝️ Oxford Academics PBE Quiz</h1>
   <div class="nav-buttons">
-    <button onclick="showIsaiahSummary()">View Isaiah Summary 📖</button>
-    <button onclick="showIsaiahCommentary()">View Isaiah Commentary 📝</button>
+    <button id="summaryBtn" onclick="showIsaiahSummary()">View Isaiah Summary 📖</button>
+    <button id="commentaryBtn" onclick="showIsaiahCommentary()">View Isaiah Commentary 📝</button>
     <button onclick="showConfig()" style="display: none;" id="backToConfig">Back to Quiz</button>
   </div>
 
@@ -864,6 +864,10 @@
         quizQuestions = validQs;
         console.log(`Loaded ${quizQuestions.length} valid questions for ${book}.`);
 
+        // ✅ Disable summary and commentary buttons during quiz
+        document.getElementById('summaryBtn').disabled = true;
+        document.getElementById('commentaryBtn').disabled = true;
+
         // ✅ Show quiz
         document.getElementById('config').classList.add('hidden');
         document.getElementById('quiz').classList.remove('hidden');
@@ -875,6 +879,9 @@
       } catch (error) {
         console.error("Start quiz failed:", error);
         alert(`⚠️ Error fetching questions:\n\n${error.message}\n\nCheck browser console (F12) for full details.`);
+        // Re-enable buttons on error
+        document.getElementById('summaryBtn').disabled = false;
+        document.getElementById('commentaryBtn').disabled = false;
       }
     }
 
@@ -1086,6 +1093,10 @@
 
     async function showSummary() {
       clearInterval(timerInterval);
+      // ✅ Re-enable summary and commentary buttons after quiz completion
+      document.getElementById('summaryBtn').disabled = false;
+      document.getElementById('commentaryBtn').disabled = false;
+
       const overallTimeMinutes = Math.round((Date.now() - quizStartTime) / 1000 / 60);  // Minutes
       const correctCount = questionLogs.filter(log => log.correct).length;
       const incorrectCount = questionLogs.length - correctCount;
