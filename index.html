@@ -73,10 +73,82 @@
       text-align: right;
       z-index: 1000;
     }
+    /* Isaiah Summary Styles */
+    .isaiah-summary {
+      max-width: 800px;
+      line-height: 1.6;
+      text-align: left;
+    }
+    .isaiah-summary h2 {
+      color: var(--primary);
+      text-align: center;
+      font-size: 2rem;
+    }
+    .isaiah-summary h3 {
+      color: #ff9800;
+      font-size: 1.4rem;
+      margin-top: 1.5rem;
+    }
+    .isaiah-summary p {
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+    .isaiah-summary ol {
+      padding-left: 1.5rem;
+    }
+    .isaiah-summary li {
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+    .nav-buttons {
+      text-align: center;
+      margin: 1rem 0;
+    }
+    .nav-buttons button {
+      margin: 0 0.5rem;
+    }
   </style>
 </head>
 <body>
   <h1>✝️ Oxford Academics PBE Quiz</h1>
+  <div class="nav-buttons">
+    <button onclick="showIsaiahSummary()">View Isaiah Summary 📖</button>
+    <button onclick="showConfig()" style="display: none;" id="backToConfig">Back to Quiz</button>
+  </div>
+
+  <!-- ==== ISAIAH SUMMARY ==== -->
+  <div id="isaiah-summary" class="card hidden">
+    <h2>Isaiah: A Super Cool Book from the Bible</h2>
+    <div class="isaiah-summary">
+      <p>Hey there! Imagine the Bible is like a huge adventure story with 66 chapters (called "books"). The Book of Isaiah is like a tiny version of the whole Bible—it's got exactly 66 chapters too! It's written by a guy named Isaiah, who was like God's messenger (called a prophet) a super long time ago, about 700 years before Jesus was born. Isaiah's job was to tell people: "Hey, God loves you SO much, but listen up and follow Him!"</p>
+      <p>The first part (chapters 1-39) is like the Old Testament part of the Bible. It's all about God saying: "I'm your amazing Creator! There's no one like Me. I take care of you like a loving parent—giving you food, home, and hugs (well, blessings!). But if you ignore Me and chase silly fake gods or hurt others, things get tough. It's like a time-out to help you come back. And guess what? When you're sorry and run back to Me, I ALWAYS forgive you. No matter what!"</p>
+      <p>The second part (chapters 40-66) is like the New Testament—full of hope! It talks about Jesus (called the Messiah), how He beats bad stuff like sin, saves everyone who believes, and makes a perfect world with no more sadness or ouchies.</p>
+      <p>Isaiah gets mentioned in the New Testament more than ANY other prophet—like he's the Bible's MVP! It's packed with treasures about God's big love, how He chases after us like a shepherd finding a lost lamb, and pulls us close again. But you gotta read it slow, like unwrapping a gift, to find all the shiny bits!</p>
+      <p>Now, let's zoom out and see the whole adventure in easy chunks:</p>
+      <ol>
+        <li><strong>(Chapters 1-6): A Big Wake-Up Call!</strong><br>
+          Isaiah gets a special job from God to tell his country (like a big family) to stop being naughty and come home to God. He keeps saying: "If you love and obey God, you'll get awesome blessings—like sunshine after rain! But if you keep fighting Him or ditching Him like an old toy, there will be trouble." It's like God saying, "I want to clean your heart sparkling white, like fresh snow!" (Isaiah 1:18). Then Isaiah sees God on His giant throne—super holy and wow!—and says, "Send me! I'll tell everyone!" (Isaiah 6:8). Brave, right?</li>
+        <li><strong>(Chapters 7-12): Heroes and Happy Endings!</strong><br>
+          God saves Isaiah's land (Judah) from mean bully countries like Syria and Assyria. He even predicts a huge bad guy army will come... but then fall—poof! And the best part? God promises a forever hero, the Messiah (Jesus!), who will rescue everyone for good. Remember that Christmas song? "For unto us a child is born!" Yeah, that's from here: Isaiah 9:6 says He's our Wonderful Counselor, Mighty God, Everlasting Father, Prince of Peace. Yay!</li>
+        <li><strong>(Chapters 13-23): Messages to the Neighborhood Bullies!</strong><br>
+          Isaiah sends "hey, watch out!" notes to all the grumpy countries around—like Babylon, Assyria, Egypt, and more (even places like Moab and Tyre). It's like God warning: "Stop being mean and proud! Turn around, or there will be big trouble." Kinda like telling a kid to share toys before they lose them.</li>
+        <li><strong>(Chapters 24-35): Beating the Big Bad Guy and Party Time!</strong><br>
+          The whole world is in a mess because of the devil (Satan) and our yucky choices. But God says, "Don't worry—I'll save My kids!" Then comes the Messiah's kingdom: a happy place where everyone is safe and sings songs about the new, perfect earth (no more thorns or tears—Chapter 35 is like a victory parade!). God whispers: "If you trust Me, I'll keep your heart super peaceful, like a calm lake." (Isaiah 26:3). Cool, huh?</li>
+        <li><strong>(Chapters 36-39): A Real-Life Adventure Break!</strong><br>
+          This is like a history movie: Bad guys from Assyria attack! But King Hezekiah prays super hard, and God sends help—zoom, they're gone! Then Hezekiah gets really sick, but God heals him. It's God's way of saying, "See? I notice when you call Me. I'm right here!"</li>
+        <li><strong>(Chapters 40-53): Songs About God's Special Helper!</strong><br>
+          These chapters are like love letters from God, full of "don't give up!" pep talks. "If you wait for Me, I'll give you eagle wings to fly high!" (Isaiah 40:31). And when life feels scary—like deep water or hot fire—God says, "I'm holding your hand the whole time!" (Isaiah 43:2). There are four special "Servant Songs" about Jesus, who takes all our oopsies on Himself so we can be friends with God forever. It's the good news story before it even happened!</li>
+        <li><strong>(Chapters 54-62): Good News for EVERYONE!</strong><br>
+          God says, "This happy-saving news isn't just for My first family—it's for ALL kids everywhere, like you and your friends from every country!" No one else could save us, so God did it alone... but He invites us to join the party. "I see the mess, but I'll fix it with My strong arm!" (Isaiah 59:16). It's like a giant welcome hug for the whole world.</li>
+        <li><strong>(Chapters 63-66): The Grand Finale—God Wins!</strong><br>
+          In the end, God beats all the bad stuff (thanks to Jesus on the cross!). He makes a shiny new kingdom where His good kids—cleaned up and safe forever—live happily. It's like the Book of Revelation: a brand-new earth with no more boo-boos! God even says, "I'll answer your prayers before you finish asking!" (Isaiah 65:24). What a happy ending!</li>
+      </ol>
+      <p>See? Isaiah shows God's heart: He's like the best Dad ever—strong, kind, and always calling you home. Grab a Bible (or ask a grown-up to read with you) and dive in—it's an epic quest! What part sounds most fun to you?</p>
+    </div>
+    <div class="nav-buttons">
+      <button onclick="showConfig()">Back to Quiz</button>
+    </div>
+  </div>
 
   <!-- ==== CONFIG ==== -->
   <div id="config" class="card">
@@ -182,6 +254,23 @@
     let quizStartTime = 0;  // Overall quiz time
     let currentQuestionData = {};  // Temp for current q
     let selectedChapters = [];  // From startQuiz
+
+    // Navigation functions
+    function showIsaiahSummary() {
+      document.getElementById('isaiah-summary').classList.remove('hidden');
+      document.getElementById('config').classList.add('hidden');
+      document.getElementById('quiz').classList.add('hidden');
+      document.getElementById('summary').classList.add('hidden');
+      document.getElementById('backToConfig').style.display = 'inline-block';
+    }
+
+    function showConfig() {
+      document.getElementById('isaiah-summary').classList.add('hidden');
+      document.getElementById('config').classList.remove('hidden');
+      document.getElementById('quiz').classList.add('hidden');
+      document.getElementById('summary').classList.add('hidden');
+      document.getElementById('backToConfig').style.display = 'none';
+    }
 
     async function loadConfig() {
       try {
@@ -533,21 +622,3 @@ async function startQuiz() {
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
