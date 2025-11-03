@@ -180,7 +180,7 @@
   <!-- ==== ISAIAH SUMMARY WIZARD ==== -->
   <div id="isaiah-summary" class="card hidden">
     <div id="name-prompt-summary" class="name-prompt hidden">
-      <p><strong>Hi there! To start the Isaiah summary, please select your name below:</strong></p>
+      <p><strong>Hi there! To start the Isaiah adventure, please select your name below:</strong></p>
       <select id="wizardUserNameSummary">
         <option value="">Select Name...</option>
         <option value="Coach">Coach</option>
@@ -263,7 +263,8 @@
       </div>
 
       <div id="wizard-finished-summary" class="wizard-finished hidden">
-        <h3>🎉 You finished the Isaiah Adventure! Great job! 🏆</h3>
+        <h3>🎉 You finished the Isaiah Adventure! Great job exploring God's story! 🏆</h3>
+        <p>Now you're ready for the quiz—head back and test your knowledge!</p>
         <button onclick="resetWizardSummary()">Read Again from Start 🔄</button>
       </div>
     </div>
@@ -275,7 +276,7 @@
   <!-- ==== ISAIAH COMMENTARY WIZARD ==== -->
   <div id="isaiah-commentary" class="card hidden">
     <div id="name-prompt-commentary" class="name-prompt hidden">
-      <p><strong>Hi there! To start reading the Isaiah Commentary, please select your name below:</strong></p>
+      <p><strong>Hi there! To start the Isaiah Commentary, please select your name below:</strong></p>
       <select id="wizardUserNameCommentary">
         <option value="">Select Name...</option>
         <option value="Coach">Coach</option>
@@ -328,7 +329,8 @@
       </div>
 
       <div id="wizard-finished-commentary" class="wizard-finished hidden">
-        <h3>🎉 You finished the Isaiah Commentary! Great job! 🏆</h3>
+        <h3>🎉 You finished the Isaiah Commentary! Great job diving deeper into God's word! 🏆</h3>
+        <p>Now you're ready for the quiz—head back and test your knowledge!</p>
         <button onclick="resetWizardCommentary()">Read Again from Start 🔄</button>
       </div>
     </div>
@@ -460,6 +462,10 @@
 
     // Navigation functions
     function showIsaiahSummary() {
+      if (!document.getElementById('quiz').classList.contains('hidden')) {
+        alert('Please finish the quiz first before viewing the summary!');
+        return;
+      }
       document.getElementById('isaiah-summary').classList.remove('hidden');
       document.getElementById('isaiah-commentary').classList.add('hidden');
       document.getElementById('config').classList.add('hidden');
@@ -493,6 +499,10 @@
     }
 
     function showIsaiahCommentary() {
+      if (!document.getElementById('quiz').classList.contains('hidden')) {
+        alert('Please finish the quiz first before viewing the commentary!');
+        return;
+      }
       document.getElementById('isaiah-commentary').classList.remove('hidden');
       document.getElementById('isaiah-summary').classList.add('hidden');
       document.getElementById('config').classList.add('hidden');
